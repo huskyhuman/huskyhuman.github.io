@@ -82,7 +82,34 @@
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT * FROM &#96;users&#96; WHERE user &#x3D; &#39;admin&#39; or &#39;1&#x3D;1&#39; AND password &#x3D; &#39;$pass&#39;</span><br></pre></td></tr></table></figure>
 
 <p>所以，只要验证出用户名为admin就可以成功登录。</p>
-<h4 id="2-burpsuit"><a href="#2-burpsuit" class="headerlink" title="2.burpsuit"></a>2.burpsuit</h4><p>​    </p>
+<h4 id="2-burpsuit"><a href="#2-burpsuit" class="headerlink" title="2.burpsuit"></a>2.burpsuit</h4><p>首先查看本地的IP地址</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/2.png" alt=""></p>
+<p>然后通过本地地址来登陆部署好的DVWA网站</p>
+<p>登陆的账户名为admin,密码为password。</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/3.png" alt=""></p>
+<p>登陆以后点击DVWA Security,更改难度为low</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/4.png" alt=""></p>
+<p>接着在firefox的preferences–&gt;settings修改代理为127.0.0.1：8080</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/5.png" alt=""></p>
+<p>打开burpsuite,一路next–&gt;start burp，打开之后在proxy–&gt;options设置代理为127.0.0.1：8080，然后在intercept设为ON</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/6.png" alt=""></p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/7.png" alt=""></p>
+<p>在DVWA的Burte force输入账号密码，随便输就行，在BurpSuite中进行抓包拦截</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/8.png" alt=""></p>
+<p>点击send to Intruder发送到intruder进行破解,快捷键是Ctrl +l，</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/9.png" alt=""></p>
+<p>在Intruder–&gt;positions添加破解的变量</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/10.png" alt=""></p>
+<p>在payloads中添加字典，可以手动添加，也可以导入密码本</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/11.png" alt=""></p>
+<p>在positions中设置攻击方式</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/12.png" alt=""></p>
+<p>Sniper标签 这个是我们最常用的，Sniper是狙击手的意思。这个模式会使用单一的payload【就是导入字典的payload】组。它会针对每个position中$$位置设置payload。这种攻击类型适合对常见漏洞中的请求参数单独地进行测试。攻击中的请求总数应该是position数量和payload数量的乘积。</p>
+<p>Battering ram – 这一模式是使用单一的payload组。它会重复payload并且一次把所有相同的payload放入指定的位置中。这种攻击适合那种需要在请求中把相同的输入放到多个位置的情况。请求的总数是payload组中payload的总数。简单说就是一个playload字典同时应用到多个position中</p>
+<p>Pitchfork – 这一模式是使用多个payload组。对于定义的位置可以使用不同的payload组。攻击会同步迭代所有的payload组，把payload放入每个定义的位置中。比如：position中A处有a字典，B处有b字典，则a【1】将会对应b【1】进行attack处理，这种攻击类型非常适合那种不同位置中需要插入不同但相关的输入的情况。请求的数量应该是最小的payload组中的payload数量</p>
+<p>Cluster bomb – 这种模式会使用多个payload组。每个定义的位置中有不同的payload组。攻击会迭代每个payload组，每种payload组合都会被测试一遍。比如：position中A处有a字典，B处有b字典，则两个字典将会循环搭配组合进行attack处理这种攻击适用于那种位置中需要不同且不相关或者未知的输入的攻击。攻击请求的总数是各payload组中payload数量的乘积。</p>
+<p>点击 start attck,根据length排序，和其他不同的那个密码是对的。</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/brute%20force/13.png" alt=""></p>
 
       
       <!-- 打赏 -->
