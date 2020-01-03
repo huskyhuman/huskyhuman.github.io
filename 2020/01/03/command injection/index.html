@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    command injection |  Hexo
+  </title>
+  
+  <link rel="shortcut icon" href="/favicon.ico" />
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+  
+<script src="/js/pace.min.js"></script>
+
+
+  
+
+  
+
+<meta name="generator" content="Hexo 4.1.1"></head>
+
+</html>
+
+<body>
+  <div id="app">
+    <main class="content">
+      <section class="outer">
+  <article id="post-command injection" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  command injection
+</h1>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/01/03/command%20injection/" class="article-date">
+  <time datetime="2020-01-03T00:10:16.140Z" itemprop="datePublished">2020-01-03</time>
+</a>
+      
+    </div>
+    
+
+    
+    
+    <div class="tocbot"></div>
+
+
+
+
+
+    
+
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <h1 id="Command-Injection"><a href="#Command-Injection" class="headerlink" title="Command Injection"></a>Command Injection</h1><p>command injection即命令注入，是指恶意用户通过构造请求，对于一些执行系统命令的功能点进行构造注入，本质上是数据与代码未分离。对于特殊的需求没有对请求进行过滤，导致绕过从而导致注入。</p>
+<h2 id="一-low"><a href="#一-low" class="headerlink" title="一.low"></a>一.low</h2><p>首先我们查看下php代码。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line"></span><br><span class="line">if( isset( $_POST[ &#39;Submit&#39; ]  ) ) &#123;</span><br><span class="line">    &#x2F;&#x2F; Get input</span><br><span class="line">    $target &#x3D; $_REQUEST[ &#39;ip&#39; ];</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Determine OS and execute the ping command.</span><br><span class="line">    if( stristr( php_uname( &#39;s&#39; ), &#39;Windows NT&#39; ) ) &#123;</span><br><span class="line">        &#x2F;&#x2F; Windows</span><br><span class="line">        $cmd &#x3D; shell_exec( &#39;ping  &#39; . $target );</span><br><span class="line">    &#125;</span><br><span class="line">    else &#123;</span><br><span class="line">        &#x2F;&#x2F; *nix</span><br><span class="line">        $cmd &#x3D; shell_exec( &#39;ping  -c 4 &#39; . $target );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Feedback for the end user</span><br><span class="line">    echo &quot;&lt;pre&gt;&#123;$cmd&#125;&lt;&#x2F;pre&gt;&quot;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p><em>php_uname(mode)</em></p>
+<p>这个函数会返回运行php的操作系统的相关描述，参数mode可取值”a” （此为默认，包含序列”s n r v m”里的所有模式），”s ”（返回操作系统名称），”n”（返回主机名），” r”（返回版本名称），”v”（返回版本信息）， ”m”（返回机器类型）。</p>
+<p>可以看到，服务器通过判断操作系统执行不同ping命令，但是对ip参数并未做任何的过滤，导致了严重的命令注入漏洞。</p>
+<p>1.注入查看用户，输入127.0.0.1&amp;&amp;net user</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/command%20injection/1.png" alt=""></p>
+<p>2.查看端口信息，输入127.0.0.1&amp;ifconfig</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/command%20injection/2.png" alt=""></p>
+<p>在linux里面，甚至可以结合cat命令来显示文件内容。</p>
+<h2 id="二-medium"><a href="#二-medium" class="headerlink" title="二.medium"></a>二.medium</h2><p>先审计一下代码。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line"></span><br><span class="line">if( isset( $_POST[ &#39;Submit&#39; ]  ) ) &#123;</span><br><span class="line">    &#x2F;&#x2F; Get input</span><br><span class="line">    $target &#x3D; $_REQUEST[ &#39;ip&#39; ];</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Set blacklist</span><br><span class="line">    $substitutions &#x3D; array(</span><br><span class="line">        &#39;&amp;&amp;&#39; &#x3D;&gt; &#39;&#39;,</span><br><span class="line">        &#39;;&#39;  &#x3D;&gt; &#39;&#39;,</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Remove any of the charactars in the array (blacklist).</span><br><span class="line">    $target &#x3D; str_replace( array_keys( $substitutions ), $substitutions, $target );</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Determine OS and execute the ping command.</span><br><span class="line">    if( stristr( php_uname( &#39;s&#39; ), &#39;Windows NT&#39; ) ) &#123;</span><br><span class="line">        &#x2F;&#x2F; Windows</span><br><span class="line">        $cmd &#x3D; shell_exec( &#39;ping  &#39; . $target );</span><br><span class="line">    &#125;</span><br><span class="line">    else &#123;</span><br><span class="line">        &#x2F;&#x2F; *nix</span><br><span class="line">        $cmd &#x3D; shell_exec( &#39;ping  -c 4 &#39; . $target );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Feedback for the end user</span><br><span class="line">    echo &quot;&lt;pre&gt;&#123;$cmd&#125;&lt;&#x2F;pre&gt;&quot;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>相比Low级别的代码，服务器端对ip参数做了一定过滤，即把”&amp;&amp;” 、”;”删除，本质上采用的是黑名单机制，因此依旧存在安全问题。</p>
+<p>1.查看用户，如果输入127.0.0.1&amp;&amp;ifconfig</p>
+<p><img src="https://github.com/huskyhuman/gitpic/blob/master/raw/dvwa/command%20injection/3.png" alt=""></p>
+<p>再输入127.0.0.1&amp;ifconfig</p>
+<p><img src="https://github.com/huskyhuman/gitpic/blob/master/raw/dvwa/command%20injection/4.png" alt=""></p>
+<p>因为只屏蔽了&amp;&amp;，所以&amp;等还能继续使用。</p>
+<h2 id="三-high"><a href="#三-high" class="headerlink" title="三.high"></a>三.high</h2><p>首先进行代码审计。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line"></span><br><span class="line">if( isset( $_POST[ &#39;Submit&#39; ]  ) ) &#123;</span><br><span class="line">    &#x2F;&#x2F; Get input</span><br><span class="line">    $target &#x3D; trim($_REQUEST[ &#39;ip&#39; ]);</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Set blacklist</span><br><span class="line">    $substitutions &#x3D; array(</span><br><span class="line">        &#39;&amp;&#39;  &#x3D;&gt; &#39;&#39;,</span><br><span class="line">        &#39;;&#39;  &#x3D;&gt; &#39;&#39;,</span><br><span class="line">        &#39;| &#39; &#x3D;&gt; &#39;&#39;,</span><br><span class="line">        &#39;-&#39;  &#x3D;&gt; &#39;&#39;,</span><br><span class="line">        &#39;$&#39;  &#x3D;&gt; &#39;&#39;,</span><br><span class="line">        &#39;(&#39;  &#x3D;&gt; &#39;&#39;,</span><br><span class="line">        &#39;)&#39;  &#x3D;&gt; &#39;&#39;,</span><br><span class="line">        &#39;&#96;&#39;  &#x3D;&gt; &#39;&#39;,</span><br><span class="line">        &#39;||&#39; &#x3D;&gt; &#39;&#39;,</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Remove any of the charactars in the array (blacklist).</span><br><span class="line">    $target &#x3D; str_replace( array_keys( $substitutions ), $substitutions, $target );</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Determine OS and execute the ping command.</span><br><span class="line">    if( stristr( php_uname( &#39;s&#39; ), &#39;Windows NT&#39; ) ) &#123;</span><br><span class="line">        &#x2F;&#x2F; Windows</span><br><span class="line">        $cmd &#x3D; shell_exec( &#39;ping  &#39; . $target );</span><br><span class="line">    &#125;</span><br><span class="line">    else &#123;</span><br><span class="line">        &#x2F;&#x2F; *nix</span><br><span class="line">        $cmd &#x3D; shell_exec( &#39;ping  -c 4 &#39; . $target );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Feedback for the end user</span><br><span class="line">    echo &quot;&lt;pre&gt;&#123;$cmd&#125;&lt;&#x2F;pre&gt;&quot;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>High级别的代码进一步完善了黑名单，但由于黑名单机制的局限性，我们依然可以绕过。</p>
+<p>可以看到，在“| ”这里多加了一个空格，“|”是管道符，表示将Command 1的输出作为Command 2的输入，并且只打印Command 2执行的结果。</p>
+<p>这里我们还是测试出端口，输入127.0.0.1|ifconfig</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/command%20injection/5.png" alt=""></p>
+<p>测试成功。</p>
+
+      
+      <!-- 打赏 -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/01/03/command%20injection/" data-id="ck4xjd8ry00008ovobkv78zez"
+        class="article-share-link">分享</a>
+      
+    </footer>
+
+  </div>
+
+  
+  
+  <nav class="article-nav">
+    
+    
+      <a href="/2019/12/22/Brute%20Force/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">Brute Force</div>
+      </a>
+    
+  </nav>
+
+
+  
+
+  
+  
+<!-- valine评论 -->
+<div id="vcomments-box">
+    <div id="vcomments">
+    </div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='https://cdn.jsdelivr.net/npm/valine@1.3.10/dist/Valine.min.js'></script>
+<script>
+    new Valine({
+        el: '#vcomments',
+        notify: false,
+        verify: false,
+        app_id: '',
+        app_key: '',
+        path: window.location.pathname,
+        avatar: 'mp',
+        placeholder: '给我的文章加点评论吧~',
+        recordIP: true
+    });
+    const infoEle = document.querySelector('#vcomments .info');
+    if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+        infoEle.childNodes.forEach(function (item) {
+            item.parentNode.removeChild(item);
+        });
+    }
+</script>
+<style>
+    #vcomments-box {
+        padding: 5px 30px;
+    }
+
+    @media screen and (max-width: 800px) {
+        #vcomments-box {
+            padding: 5px 0px;
+        }
+    }
+
+    #vcomments-box #vcomments {
+        background-color: #fff;
+    }
+
+    .v .vlist .vcard .vh {
+        padding-right: 20px;
+    }
+
+    .v .vlist .vcard {
+        padding-left: 10px;
+    }
+</style>
+
+  
+
+  
+  
+  
+
+</article>
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul class="list-inline">
+      <li>
+        &copy;
+        2015-2020
+        John Doe
+      </li>
+      <li>
+        
+        
+        
+        <a href="https://hexo.io" target="_blank">Hexo</a> Theme <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a> by shenyu
+        
+      </li>
+    </ul>
+    <ul class="list-inline">
+      <li>
+        
+        
+        <ul class="list-inline">
+  <li>PV:<span id="busuanzi_value_page_pv"></span></li>
+  <li>UV:<span id="busuanzi_value_site_uv"></span></li>
+</ul>
+        
+      </li>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+    <div class="to_top">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+      </div>
+    </main>
+    
+    <aside class="sidebar">
+      
+        <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="Hexo"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">目录</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags/%E6%97%85%E8%A1%8C/">旅行</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="http://shenyu-vip.lofter.com" target="_blank" rel="noopener">摄影</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/2019/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+      </aside>
+      <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+      
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/jquery.justifiedGallery.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+
+
+  
+<script src="/js/tocbot.min.js"></script>
+
+  <script>
+    // Tocbot_v4.7.0  http://tscanlin.github.io/tocbot/
+    tocbot.init({
+      tocSelector: '.tocbot',
+      contentSelector: '.article-entry',
+      headingSelector: 'h1, h2, h3, h4, h5, h6',
+      hasInnerContainers: true,
+      scrollSmooth: true,
+      positionFixedSelector: '.tocbot',
+      positionFixedClass: 'is-position-fixed',
+      fixedSidebarOffset: 'auto',
+    });
+  </script>
+
+
+<script>
+  var ayerConfig = {
+    mathjax: false
+  }
+</script>
+
+
+<script src="/js/ayer.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+
+
+
+<script type="text/javascript" src="https://js.users.51.la/20544303.js"></script>
+  
+  
+  </div>
+</body>
+
+</html>
