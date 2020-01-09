@@ -61,6 +61,285 @@
 
     
     
+    <article id="post-Insecure CAPTCHA" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2020/01/09/Insecure%20CAPTCHA/"
+    >Insecure CAPTCHA</a
+  >
+</h2>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/01/09/Insecure%20CAPTCHA/" class="article-date">
+  <time datetime="2020-01-09T15:52:54.732Z" itemprop="datePublished">2020-01-09</time>
+</a>
+      
+    </div>
+    
+
+    
+
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <h1 id="Insecure-CAPTCHA"><a href="#Insecure-CAPTCHA" class="headerlink" title="Insecure CAPTCHA"></a>Insecure CAPTCHA</h1><h2 id="low"><a href="#low" class="headerlink" title="low"></a>low</h2><p>首先查看源码</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/Insecure%20CAPTCHA/29.jpg" alt=""></p>
+<p>服务器端核心代码显示服务器将改密操作分成了两步，第一步检查用户输入的验证码，验证通过后，服务器返回表单，第二步客户端提交post请求，服务器完成更改密码的操作。但是，这其中存在明显的逻辑漏洞，服务器仅仅通过检查Change、step 参数来判断用户是否已经输入了正确的验证码。</p>
+<p>通过构造参数绕过验证过程的第一步</p>
+<p>首先输入密码，点击Change按钮，抓包：</p>
+<p>更改step的参数为2绕过验证码</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/Insecure%20CAPTCHA/30.jpg" alt=""></p>
+<p>提交之后显示修改密码成功</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/Insecure%20CAPTCHA/31.jpg" alt=""></p>
+<h2 id="medium"><a href="#medium" class="headerlink" title="medium"></a>medium</h2><p>首先查看源码</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/Insecure%20CAPTCHA/32.jpg" alt=""></p>
+<p>可以看到，Medium级别的代码在第二步验证时，参加了对参数passed_captcha的检查，如果参数值为true，则认为用户已经通过了验证码检查，然而用户依然可以通过伪造参数绕过验证，本质上来说，这与Low级别的验证没有任何区别。</p>
+<p>再次进行抓包，修改step参数，并且增加passed_captcha参数</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/Insecure%20CAPTCHA/33.jpg" alt=""></p>
+<p>可以看到成功绕过验证码</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/Insecure%20CAPTCHA/34.jpg" alt=""></p>
+<h2 id="high"><a href="#high" class="headerlink" title="high"></a>high</h2><p>首先查看源代码</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/Insecure%20CAPTCHA/35.jpg" alt=""></p>
+<p>可以看到，服务器的验证逻辑是当$resp（这里是指谷歌返回的验证结果）是false，并且参数recaptcha_response_field不等于hidd3n_valu3（或者http包头的User-Agent参数不等于reCAPTCHA）时，就认为验证码输入错误，反之则认为已经通过了验证码的检查。</p>
+<p>由于$resp参数我们无法控制，所以重心放在token参数、User-Agent上，进行抓包，更改token的参数，在&amp;Change=Change参数后面新增一个g-recaptcha-response=hidd3n_valu3，即&amp;Change=Change&amp;g-recaptcha-response=hidd3n_valu3。并将请求头的User-Agent的值改为reCAPTCHA</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/Insecure%20CAPTCHA/36.jpg" alt=""></p>
+<p>可以看到更改成功</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/Insecure%20CAPTCHA/37.jpg" alt=""></p>
+
+      
+      <!-- 打赏 -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/01/09/Insecure%20CAPTCHA/" data-id="ck56xjxcf0002ksvogfdg4tyv"
+        class="article-share-link">分享</a>
+      
+    </footer>
+
+  </div>
+
+  
+
+  
+  
+  
+
+  
+
+</article>
+    
+    <article id="post-File Upload" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2020/01/09/File%20Upload/"
+    >File Upload</a
+  >
+</h2>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/01/09/File%20Upload/" class="article-date">
+  <time datetime="2020-01-09T15:44:03.954Z" itemprop="datePublished">2020-01-09</time>
+</a>
+      
+    </div>
+    
+
+    
+
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <h1 id="File-Upload"><a href="#File-Upload" class="headerlink" title="File Upload"></a>File Upload</h1><h2 id="low"><a href="#low" class="headerlink" title="low"></a>low</h2><p>首先查看源码</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/12.jpg" alt=""></p>
+<p>我们可以看到看到它对上传的文件没有任何的要求，文件类型或是文件大小都没有做规定，于是我们可以轻松的传我们的木马上去</p>
+<p>编写php文件</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/13.jpg" alt=""></p>
+<p>上传成功</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/14.jpg" alt=""></p>
+<p>我们登录</p>
+<p>[]: <a href="http://localhost/dvwa/vulnerabilities/fi/?page=../../hackable/uploads/hack.php" target="_blank" rel="noopener">http://localhost/dvwa/vulnerabilities/fi/?page=../../hackable/uploads/hack.php</a></p>
+<p>跳转到上传的php文件，发现文件内容被成功执行</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/15.jpg" alt=""></p>
+<h2 id="medium"><a href="#medium" class="headerlink" title="medium"></a>medium</h2><p>首先查看源码</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/16.jpg" alt=""></p>
+<p>仅前端判断文件后缀名，当前端提示不能发送非jpg、png格式</p>
+<p>首先打开我们的php木马</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/17.jpg" alt=""></p>
+<p>设置浏览器代理用来抓包</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/18.jpg" alt=""></p>
+<p>打开Burp Suite，配置好Proxy -》 Options，并在Proxy-》Intercept-》Intercept is on </p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/19.jpg" alt=""></p>
+<p>此时把要上传的nosafe.php后缀改为jpg，然后提交，在Burp Suite中的filename中把文件nosafe.jpg后缀改为nosafe.php，并且修改大小限制为200000</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/20.jpg" alt=""></p>
+<p>可以看见文件成功上传</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/21.jpg" alt=""></p>
+<p>登录</p>
+<p>[]: <a href="http://localhost/dvwa/vulnerabilities/fi/?page=../../hackable/uploads/nosafe.php" target="_blank" rel="noopener">http://localhost/dvwa/vulnerabilities/fi/?page=../../hackable/uploads/nosafe.php</a></p>
+<p>可以看到木马成功运行，显示了dvwa的后台</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/22.jpg" alt=""></p>
+<h2 id="high"><a href="#high" class="headerlink" title="high"></a>high</h2><p>首先查看源码</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/23.jpg" alt=""></p>
+<p>strrpos(string,find,start)</p>
+<p>函数返回字符串find在另一字符串string中最后一次出现的位置，如果没有找到字符串则返回false，可选参数start规定在何处开始搜索。</p>
+<p>getimagesize(string filename)</p>
+<p>函数会通过读取文件头，返回图片的长、宽等信息，如果没有相关的图片文件头，函数会报错。</p>
+<p>可以看到，High级别的代码读取文件名中最后一个”.”后的字符串，期望通过文件名来限制文件类型，因此要求上传文件名形式必须是”<em>.jpg”、”</em>.jpeg” 、”*.png”之一。同时，getimagesize函数更是限制了上传文件的文件头必须为图像类型。</p>
+<p>准备一个图片1.jpeg和1.php脚本，php脚本中写入方法打开phpinfo文件</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/24.jpg" alt=""></p>
+<p>windows下打开cmd运行</p>
+<p>copy 1.png/b+1.php/a 1.png</p>
+<p>将png文件和php文件生成一个新的图片</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/25.jpg" alt=""></p>
+<p>可以看到，新的图片最后包含了php代码</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/26.jpg" alt=""></p>
+<p>我们将1.png上传</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/27.jpg" alt=""></p>
+<p>此时，登录</p>
+<p>[]: localhost/dvwa/vulnerabilities/fi/?page=../../hackable/uploads/1.png</p>
+<p>访问上传的png，发现其中的php代码成功执行</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Upload/28.jpg" alt=""></p>
+
+      
+      <!-- 打赏 -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/01/09/File%20Upload/" data-id="ck56xjx7k0000ksvog6j71ujr"
+        class="article-share-link">分享</a>
+      
+    </footer>
+
+  </div>
+
+  
+
+  
+  
+  
+
+  
+
+</article>
+    
+    <article id="post-File Inclusion" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2020/01/09/File%20Inclusion/"
+    >File Inclusion</a
+  >
+</h2>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/01/09/File%20Inclusion/" class="article-date">
+  <time datetime="2020-01-09T15:32:48.500Z" itemprop="datePublished">2020-01-09</time>
+</a>
+      
+    </div>
+    
+
+    
+
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <h1 id="File-Inclusion"><a href="#File-Inclusion" class="headerlink" title="File Inclusion"></a>File Inclusion</h1><h2 id="low"><a href="#low" class="headerlink" title="low"></a>low</h2><p>进入页面</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Inclusion/1.jpg" alt=""></p>
+<p>我们先来看看源码：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Inclusion/2.jpg" alt=""></p>
+<p>分析源码，可以看到没有对page参数做任何过滤</p>
+<p>编写txt文件放到html文件夹中</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Inclusion/3.jpg" alt=""></p>
+<p>登录</p>
+<p>[]: <a href="http://localhost/dvwa/vulnerabilities/fi/?page=http://127.0.0.1/test1low.txt" target="_blank" rel="noopener">http://localhost/dvwa/vulnerabilities/fi/?page=http://127.0.0.1/test1low.txt</a></p>
+<p>发现成功读取txt内容</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Inclusion/4.jpg" alt=""></p>
+<p>编写php文件，目的是使用phpinfo函数打开phpinfo文件</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Inclusion/5.jpg" alt=""></p>
+<p>访问</p>
+<p>[]: <a href="http://localhost/dvwa/vulnerabilities/fi/?page=http://127.0.0.1/test1low.php" target="_blank" rel="noopener">http://localhost/dvwa/vulnerabilities/fi/?page=http://127.0.0.1/test1low.php</a></p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Inclusion/6.jpg" alt=""></p>
+<h2 id="medium"><a href="#medium" class="headerlink" title="medium"></a>medium</h2><p>我们先来看源代码:</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Inclusion/7.jpg" alt=""></p>
+<p>分析源码,可以看到使用str_replace函数对http://、https://、../ 、..\进行了过滤,但可以通过双写来绕过，或者使用绝对路径来绕过</p>
+<p>即过滤了远程文件包含, 对于本地文件包含并没有任何过滤：</p>
+<p>本地包含采用相对路径访问</p>
+<p>[]: <a href="http://localhost/dvwa/vulnerabilities/fi/?page=..././..././test1medium" target="_blank" rel="noopener">http://localhost/dvwa/vulnerabilities/fi/?page=..././..././test1medium</a></p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Inclusion/8.jpg" alt=""></p>
+<p>远程包含采用更改http为Http的方式绕过防御</p>
+<p>[]: <a href="http://localhost/dvwa/vulnerabilities/fi/?page=Http://127.0.0.1/test1medium.txt" target="_blank" rel="noopener">http://localhost/dvwa/vulnerabilities/fi/?page=Http://127.0.0.1/test1medium.txt</a></p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Inclusion/9.jpg" alt=""></p>
+<h2 id="high"><a href="#high" class="headerlink" title="high"></a>high</h2><p>我们先来看源代码:</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Inclusion/10.jpg" alt=""></p>
+<p>分析源码可以看到,如果$file变量中不含有file并且$file不等于include.php，此时服务器才不会去包含文件，两个条件只要不满足其中任意一个,就能达到文件包含的目的,可以使用file协议来绕过</p>
+<p> 输入</p>
+<p>[]: <a href="http://localhost/dvwa/vulnerabilities/fi/?page=file:///var/www/html/test1high.txt" target="_blank" rel="noopener">http://localhost/dvwa/vulnerabilities/fi/?page=file:///var/www/html/test1high.txt</a></p>
+<p>绕过防御</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/File%20Inclusion/11.jpg" alt=""></p>
+
+      
+      <!-- 打赏 -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/01/09/File%20Inclusion/" data-id="ck56xjxcb0001ksvofzu764zd"
+        class="article-share-link">分享</a>
+      
+    </footer>
+
+  </div>
+
+  
+
+  
+  
+  
+
+  
+
+</article>
+    
     <article id="post-XSS_S" class="article article-type-post" itemscope
   itemprop="blogPost" data-scroll-reveal>
 
@@ -107,9 +386,15 @@
 <p>stripslashes(string)</p>
 <p>函数删除字符串中的反斜杠。</p>
 <p>可以看到，对输入并没有做XSS方面的过滤与检查，且存储在数据库中，因此这里存在明显的存储型XSS漏洞。</p>
-<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>message一栏输入<script>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>message一栏输入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/37.PNG" alt=""></p>
-<p>name一栏前端有字数限制，抓包改为<script>alert(/name/)</script>，成功弹框，如下图所示：</p>
+<p>name一栏前端有字数限制，抓包改为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;alert(&#x2F;name&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/38.PNG" alt=""></p>
 <h2 id="Medium"><a href="#Medium" class="headerlink" title="Medium"></a>Medium</h2><p>服务器端核心代码</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">if( isset( $_POST[ &#39;btnSign&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $message &#x3D; trim( $_POST[ &#39;mtxMessage&#39; ] ); </span><br><span class="line">    $name    &#x3D; trim( $_POST[ &#39;txtName&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize message input </span><br><span class="line">    $message &#x3D; strip_tags( addslashes( $message ) ); </span><br><span class="line">    $message &#x3D; mysql_real_escape_string( $message ); </span><br><span class="line">    $message &#x3D; htmlspecialchars( $message ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize name input </span><br><span class="line">    $name &#x3D; str_replace( &#39;&lt;script&gt;&#39;, &#39;&#39;, $name ); </span><br><span class="line">    $name &#x3D; mysql_real_escape_string( $name ); </span><br><span class="line">    &#x2F;&#x2F; Update database </span><br><span class="line">    $query  &#x3D; &quot;INSERT INTO guestbook ( comment, name ) VALUES ( &#39;$message&#39;, &#39;$name&#39; );&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $query ) or die( &#39;&lt;pre&gt;&#39; . mysql_error() . &#39;&lt;&#x2F;pre&gt;&#39; ); </span><br><span class="line">    &#x2F;&#x2F;mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
@@ -119,12 +404,18 @@
 <p>addslashes() 函数返回在预定义字符（单引号、双引号、反斜杠、NULL）之前添加反斜杠的字符串。</p>
 <p>可以看到，由于对message参数使用了htmlspecialchars函数进行编码，因此无法再通过message参数注入XSS代码，但是对于name参数，只是简单过滤了<script>字符串，仍然存在存储型的XSS。</p>
 <h3 id="漏洞利用-1"><a href="#漏洞利用-1" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>1.双写绕过</p>
-<p>抓包改name参数为<sc<script>ript>alert(/xss/)</script>，如下图所示:</p>
+<p>抓包改name参数为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;ript&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>如下图所示:</p>
 <p><img src="Ehttps://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/39.PNG" alt=""></p>
 <p>成功弹窗，如下图所示：</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/40.PNG" alt=""></p>
 <p>2.大小写混淆绕过</p>
-<p>抓包改name参数为<Script>alert(/xss/)</script>，如下图所示:</p>
+<p>抓包改name参数为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;Script&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>如下图所示:</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/41.PNG" alt=""></p>
 <p>成功弹窗，如下图所示：</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/42.PNG" alt=""></p>
@@ -203,7 +494,10 @@
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">&#x2F;&#x2F; Is there any input? </span><br><span class="line">if( array_key_exists( &quot;name&quot;, $_GET ) &amp;&amp; $_GET[ &#39;name&#39; ] !&#x3D; NULL ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Feedback for end user </span><br><span class="line">    echo &#39;&lt;pre&gt;Hello &#39; . $_GET[ &#39;name&#39; ] . &#39;&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
 
 <p>可以看到，代码直接引用了name参数，并没有任何的过滤与检查，存在明显的XSS漏洞。</p>
-<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>输入<script>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>输入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="E:%5C%E8%AF%BE%E8%AE%BE%E6%88%AA%E5%9B%BE%5C33.PNG" alt=""></p>
 <h3 id="Medium"><a href="#Medium" class="headerlink" title="Medium"></a>Medium</h3><p>服务器端核心代码</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/33.PNG" alt="">!</p>
@@ -211,17 +505,26 @@
 
 <p>可以看到，这里对输入进行了过滤，基于黑名单的思想，使用str_replace函数将输入中的<script>删除，这种防护机制是可以被轻松绕过的。</p>
 <h3 id="漏洞利用-1"><a href="#漏洞利用-1" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>1.双写绕过</p>
-<p>输入<sc<script>ript>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<p>输入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;ript&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="Ehttps://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/34.PNG" alt=""></p>
 <p>2.大小写混淆绕过</p>
-<p>输入<ScRipt>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<p>输入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;ScRipt&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/35.PNG" alt=""></p>
 <h2 id="High"><a href="#High" class="headerlink" title="High"></a>High</h2><p>服务器端核心代码</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">&#x2F;&#x2F; Is there any input? </span><br><span class="line">if( array_key_exists( &quot;name&quot;, $_GET ) &amp;&amp; $_GET[ &#39;name&#39; ] !&#x3D; NULL ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $name &#x3D; preg_replace( &#39;&#x2F;&lt;(.*)s(.*)c(.*)r(.*)i(.*)p(.*)t&#x2F;i&#39;, &#39;&#39;, $_GET[ &#39;name&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Feedback for end user </span><br><span class="line">    echo &quot;&lt;pre&gt;Hello $&#123;name&#125;&lt;&#x2F;pre&gt;&quot;; </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
 
 <p>可以看到，High级别的代码同样使用黑名单过滤输入，preg_replace() 函数用于正则表达式的搜索和替换，这使得双写绕过、大小写混淆绕过（正则表达式中i表示不区分大小写）不再有效。</p>
 <h3 id="漏洞利用-2"><a href="#漏洞利用-2" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>虽然无法使用<script>标签注入XSS代码，但是可以通过img、body等标签的事件或者iframe等标签的src注入恶意的js代码。</p>
-<p>输入<img src=1 onerror=alert(/xss/)>，成功弹框，如下图所示：</p>
+<p>输入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;img src&#x3D;1 onerror&#x3D;alert(&#x2F;xss&#x2F;)&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="Ehttps://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/36.PNG" alt=""></p>
 <h2 id="Impossible"><a href="#Impossible" class="headerlink" title="Impossible"></a>Impossible</h2><p>服务器端核心代码</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">&#x2F;&#x2F; Is there any input? </span><br><span class="line">if( array_key_exists( &quot;name&quot;, $_GET ) &amp;&amp; $_GET[ &#39;name&#39; ] !&#x3D; NULL ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Check Anti-CSRF token </span><br><span class="line">    checkToken( $_REQUEST[ &#39;user_token&#39; ], $_SESSION[ &#39;session_token&#39; ], &#39;index.php&#39; ); </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $name &#x3D; htmlspecialchars( $_GET[ &#39;name&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Feedback for end user </span><br><span class="line">    echo &quot;&lt;pre&gt;Hello $&#123;name&#125;&lt;&#x2F;pre&gt;&quot;; </span><br><span class="line">&#125; </span><br><span class="line">&#x2F;&#x2F; Generate Anti-CSRF token </span><br><span class="line">generateSessionToken(); </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>

@@ -81,9 +81,15 @@
 <p>stripslashes(string)</p>
 <p>函数删除字符串中的反斜杠。</p>
 <p>可以看到，对输入并没有做XSS方面的过滤与检查，且存储在数据库中，因此这里存在明显的存储型XSS漏洞。</p>
-<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>message一栏输入<script>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>message一栏输入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/37.PNG" alt=""></p>
-<p>name一栏前端有字数限制，抓包改为<script>alert(/name/)</script>，成功弹框，如下图所示：</p>
+<p>name一栏前端有字数限制，抓包改为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;alert(&#x2F;name&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/38.PNG" alt=""></p>
 <h2 id="Medium"><a href="#Medium" class="headerlink" title="Medium"></a>Medium</h2><p>服务器端核心代码</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">if( isset( $_POST[ &#39;btnSign&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $message &#x3D; trim( $_POST[ &#39;mtxMessage&#39; ] ); </span><br><span class="line">    $name    &#x3D; trim( $_POST[ &#39;txtName&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize message input </span><br><span class="line">    $message &#x3D; strip_tags( addslashes( $message ) ); </span><br><span class="line">    $message &#x3D; mysql_real_escape_string( $message ); </span><br><span class="line">    $message &#x3D; htmlspecialchars( $message ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize name input </span><br><span class="line">    $name &#x3D; str_replace( &#39;&lt;script&gt;&#39;, &#39;&#39;, $name ); </span><br><span class="line">    $name &#x3D; mysql_real_escape_string( $name ); </span><br><span class="line">    &#x2F;&#x2F; Update database </span><br><span class="line">    $query  &#x3D; &quot;INSERT INTO guestbook ( comment, name ) VALUES ( &#39;$message&#39;, &#39;$name&#39; );&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $query ) or die( &#39;&lt;pre&gt;&#39; . mysql_error() . &#39;&lt;&#x2F;pre&gt;&#39; ); </span><br><span class="line">    &#x2F;&#x2F;mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
@@ -93,12 +99,18 @@
 <p>addslashes() 函数返回在预定义字符（单引号、双引号、反斜杠、NULL）之前添加反斜杠的字符串。</p>
 <p>可以看到，由于对message参数使用了htmlspecialchars函数进行编码，因此无法再通过message参数注入XSS代码，但是对于name参数，只是简单过滤了<script>字符串，仍然存在存储型的XSS。</p>
 <h3 id="漏洞利用-1"><a href="#漏洞利用-1" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>1.双写绕过</p>
-<p>抓包改name参数为<sc<script>ript>alert(/xss/)</script>，如下图所示:</p>
+<p>抓包改name参数为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;ript&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>如下图所示:</p>
 <p><img src="Ehttps://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/39.PNG" alt=""></p>
 <p>成功弹窗，如下图所示：</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/40.PNG" alt=""></p>
 <p>2.大小写混淆绕过</p>
-<p>抓包改name参数为<Script>alert(/xss/)</script>，如下图所示:</p>
+<p>抓包改name参数为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;Script&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>如下图所示:</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/41.PNG" alt=""></p>
 <p>成功弹窗，如下图所示：</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/42.PNG" alt=""></p>
@@ -130,6 +142,15 @@
   
   
   <nav class="article-nav">
+    
+      <a href="/2020/01/09/File%20Inclusion/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            File Inclusion
+          
+        </div>
+      </a>
     
     
       <a href="/2020/01/09/XSS_R/" class="article-nav-link">

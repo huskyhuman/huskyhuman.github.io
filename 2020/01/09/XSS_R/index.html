@@ -75,7 +75,10 @@
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">&#x2F;&#x2F; Is there any input? </span><br><span class="line">if( array_key_exists( &quot;name&quot;, $_GET ) &amp;&amp; $_GET[ &#39;name&#39; ] !&#x3D; NULL ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Feedback for end user </span><br><span class="line">    echo &#39;&lt;pre&gt;Hello &#39; . $_GET[ &#39;name&#39; ] . &#39;&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
 
 <p>可以看到，代码直接引用了name参数，并没有任何的过滤与检查，存在明显的XSS漏洞。</p>
-<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>输入<script>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>输入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="E:%5C%E8%AF%BE%E8%AE%BE%E6%88%AA%E5%9B%BE%5C33.PNG" alt=""></p>
 <h3 id="Medium"><a href="#Medium" class="headerlink" title="Medium"></a>Medium</h3><p>服务器端核心代码</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/33.PNG" alt="">!</p>
@@ -83,17 +86,26 @@
 
 <p>可以看到，这里对输入进行了过滤，基于黑名单的思想，使用str_replace函数将输入中的<script>删除，这种防护机制是可以被轻松绕过的。</p>
 <h3 id="漏洞利用-1"><a href="#漏洞利用-1" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>1.双写绕过</p>
-<p>输入<sc<script>ript>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<p>输入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;ript&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="Ehttps://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/34.PNG" alt=""></p>
 <p>2.大小写混淆绕过</p>
-<p>输入<ScRipt>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<p>输入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;ScRipt&gt;alert(&#x2F;xss&#x2F;)&lt;&#x2F;script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/35.PNG" alt=""></p>
 <h2 id="High"><a href="#High" class="headerlink" title="High"></a>High</h2><p>服务器端核心代码</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">&#x2F;&#x2F; Is there any input? </span><br><span class="line">if( array_key_exists( &quot;name&quot;, $_GET ) &amp;&amp; $_GET[ &#39;name&#39; ] !&#x3D; NULL ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $name &#x3D; preg_replace( &#39;&#x2F;&lt;(.*)s(.*)c(.*)r(.*)i(.*)p(.*)t&#x2F;i&#39;, &#39;&#39;, $_GET[ &#39;name&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Feedback for end user </span><br><span class="line">    echo &quot;&lt;pre&gt;Hello $&#123;name&#125;&lt;&#x2F;pre&gt;&quot;; </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
 
 <p>可以看到，High级别的代码同样使用黑名单过滤输入，preg_replace() 函数用于正则表达式的搜索和替换，这使得双写绕过、大小写混淆绕过（正则表达式中i表示不区分大小写）不再有效。</p>
 <h3 id="漏洞利用-2"><a href="#漏洞利用-2" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>虽然无法使用<script>标签注入XSS代码，但是可以通过img、body等标签的事件或者iframe等标签的src注入恶意的js代码。</p>
-<p>输入<img src=1 onerror=alert(/xss/)>，成功弹框，如下图所示：</p>
+<p>输入</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;img src&#x3D;1 onerror&#x3D;alert(&#x2F;xss&#x2F;)&gt;</span><br></pre></td></tr></table></figure>
+
+<p>成功弹框，如下图所示：</p>
 <p><img src="Ehttps://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/36.PNG" alt=""></p>
 <h2 id="Impossible"><a href="#Impossible" class="headerlink" title="Impossible"></a>Impossible</h2><p>服务器端核心代码</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">&#x2F;&#x2F; Is there any input? </span><br><span class="line">if( array_key_exists( &quot;name&quot;, $_GET ) &amp;&amp; $_GET[ &#39;name&#39; ] !&#x3D; NULL ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Check Anti-CSRF token </span><br><span class="line">    checkToken( $_REQUEST[ &#39;user_token&#39; ], $_SESSION[ &#39;session_token&#39; ], &#39;index.php&#39; ); </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $name &#x3D; htmlspecialchars( $_GET[ &#39;name&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Feedback for end user </span><br><span class="line">    echo &quot;&lt;pre&gt;Hello $&#123;name&#125;&lt;&#x2F;pre&gt;&quot;; </span><br><span class="line">&#125; </span><br><span class="line">&#x2F;&#x2F; Generate Anti-CSRF token </span><br><span class="line">generateSessionToken(); </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
